@@ -31,7 +31,7 @@
             width: 100%;
             height: auto;
             margin-bottom: 20px;
-            border: 1px solid #ccc; /* Add a border for visibility */
+            
             box-sizing: border-box; /* Include padding and border in the element's total width and height */
         }
         .hexagon {
@@ -51,12 +51,15 @@
             data = rawData.flat().filter(d => d.location[0] !== 0 && d.location[1] !== 0);
             window.data = data; // Keep original data accessible
 
+            filteredData = data; // Initialize filtered data with full dataset
+
             heatmap = new Heatmap();
             timeline = new Timeline();
             timeOfDay = new TimeOfDayChart();
 
-            filteredData = data; // Initialize filtered data with full dataset
-            updateCharts();
+            
+
+            // updateCharts(); // Redundant, charts are drawn in constructors via resize()
 
             let resizeTimer;
             window.addEventListener('resize', () => {
@@ -71,8 +74,8 @@
 
         function updateCharts() {
             heatmap.draw(filteredData);
-            timeline.draw(filteredData);
-            timeOfDay.draw(filteredData);
+            timeline.draw(data);
+            timeOfDay.draw(data);
         }
 
         function onBrush(event) {
@@ -151,10 +154,8 @@
             }
 
             resize() {
-                this.width = parseInt(this.svgElement.style("width")) - this.margin.left - this.margin.right;
-                this.height = parseInt(this.svgElement.style("height")) - this.margin.top - this.margin.bottom;
-                // Ensure min height for heatmap, or proportional
-                if (this.height < 200) this.height = 200; 
+                this.width = this.svgElement.node().getBoundingClientRect().width - this.margin.left - this.margin.right;
+                this.height = this.width * 0.75; // Maintain a 4:3 aspect ratio 
 
                 this.svgElement
                     .attr("width", this.width + this.margin.left + this.margin.right)
@@ -217,19 +218,19 @@
 
                 this.bars = this.svg.append("g");
 
-                const brush = d3.brushX()
+                this.brush = d3.brushX()
                     .extent([[0, 0], [1, this.height]]) // Use 1 for width initially, will be updated by resize
                     .on("brush end", onBrush.bind(this)); // Listen to both brush and end events
 
                 this.brushGroup = this.svg.append("g")
                     .attr("class", "brush")
-                    .call(brush);
+                    .call(this.brush);
                 
                 this.resize(); // Initial sizing
             }
 
             resize() {
-                this.width = parseInt(this.svgElement.style("width")) - this.margin.left - this.margin.right;
+                this.width = this.svgElement.node().getBoundingClientRect().width - this.margin.left - this.margin.right;
                 if (this.width < 10) this.width = 10; // Minimum width
 
                 this.svgElement
@@ -244,7 +245,7 @@
                     .attr("transform", `translate(0,${this.height})`)
                     .call(d3.axisBottom(this.x));
                 
-                this.brushGroup.call(d3.brushX().extent([[0, 0], [this.width, this.height]])); // Update brush extent
+                this.brushGroup.call(this.brush.extent([[0, 0], [this.width, this.height]])); // Update brush extent
                 this.draw(filteredData); // Redraw with current filtered data
             }
 
@@ -284,19 +285,19 @@
 
                 this.bars = this.svg.append("g");
 
-                const brush = d3.brushX()
+                this.brush = d3.brushX()
                     .extent([[0, 0], [1, this.height]]) // Use 1 for width initially, will be updated by resize
                     .on("brush end", onBrush.bind(this)); // Listen to both brush and end events
 
                 this.brushGroup = this.svg.append("g")
                     .attr("class", "brush")
-                    .call(brush);
+                    .call(this.brush);
                 
                 this.resize(); // Initial sizing
             }
 
             resize() {
-                this.width = parseInt(this.svgElement.style("width")) - this.margin.left - this.margin.right;
+                this.width = this.svgElement.node().getBoundingClientRect().width - this.margin.left - this.margin.right;
                 if (this.width < 10) this.width = 10; // Minimum width
 
                 this.svgElement
@@ -312,7 +313,7 @@
                     .attr("transform", `translate(0,${this.height})`)
                     .call(d3.axisBottom(this.x));
 
-                this.brushGroup.call(d3.brushX().extent([[0, 0], [this.width, this.height]])); // Update brush extent
+                this.brushGroup.call(this.brush.extent([[0, 0], [this.width, this.height]])); // Update brush extent
                 this.draw(filteredData); // Redraw with current filtered data
             }
 
