@@ -59,6 +59,8 @@
 
             
 
+            
+
             // updateCharts(); // Redundant, charts are drawn in constructors via resize()
 
             let resizeTimer;
@@ -246,7 +248,7 @@
                     .call(d3.axisBottom(this.x));
                 
                 this.brushGroup.call(this.brush.extent([[0, 0], [this.width, this.height]])); // Update brush extent
-                this.draw(filteredData); // Redraw with current filtered data
+                this.draw(data); // Redraw with full dataset
             }
 
             draw(data) {
@@ -314,7 +316,7 @@
                     .call(d3.axisBottom(this.x));
 
                 this.brushGroup.call(this.brush.extent([[0, 0], [this.width, this.height]])); // Update brush extent
-                this.draw(filteredData); // Redraw with current filtered data
+                this.draw(data); // Redraw with full dataset
             }
 
             draw(data) {
