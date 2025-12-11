@@ -61,6 +61,8 @@
 
             
 
+            
+
             // updateCharts(); // Redundant, charts are drawn in constructors via resize()
 
             let resizeTimer;
@@ -77,7 +79,7 @@
         function updateCharts() {
             heatmap.draw(filteredData);
             timeline.draw(data);
-            timeOfDay.draw(data);
+            timeOfDay.draw(filteredData);
         }
 
         function onBrush(event) {
@@ -316,7 +318,7 @@
                     .call(d3.axisBottom(this.x));
 
                 this.brushGroup.call(this.brush.extent([[0, 0], [this.width, this.height]])); // Update brush extent
-                this.draw(data); // Redraw with full dataset
+                this.draw(filteredData); // Redraw with current filtered data
             }
 
             draw(data) {
