@@ -136,6 +136,10 @@
                 this.yScaleFull = d3.scaleLinear()
                     .domain(d3.extent(data, d => d.location[1])).nice();
                 
+                const [xMin, xMax] = this.xScaleFull.domain();
+                const [yMin, yMax] = this.yScaleFull.domain();
+                this.domainAspectRatio = (yMax - yMin) / (xMax - xMin);
+                
                 const hexbinFnFull = hexbin()
                     .x(d => this.xScaleFull(d.location[0]))
                     .y(d => this.yScaleFull(d.location[1]))
@@ -159,7 +163,7 @@
 
             resize() {
                 this.width = this.svgElement.node().getBoundingClientRect().width - this.margin.left - this.margin.right;
-                this.height = this.width * 0.75; // Maintain a 4:3 aspect ratio 
+                this.height = this.width * this.domainAspectRatio; 
 
                 this.svgElement
                     .attr("width", this.width + this.margin.left + this.margin.right)
@@ -202,6 +206,28 @@
                     .attr("transform", d => `translate(${d.x},${d.y})`)
                     .attr("fill", d => d.totalDuration ? this.colorScaleFull(d.totalDuration) : "none")
                     .attr("class", "hexagon");
+
+                let pointsData = data;
+                const maxPoints = 2000;
+                if (data.length > maxPoints) {
+                    pointsData = [];
+                    const step = Math.floor(data.length / maxPoints);
+                    for (let i = 0; i < data.length; i += step) {
+                        pointsData.push(data[i]);
+                    }
+                }
+
+                this.svg.selectAll(".points-container").remove();
+                this.svg.append("g")
+                    .attr("class", "points-container")
+                    .selectAll("circle")
+                    .data(pointsData)
+                    .join("circle")
+                    .attr("cx", d => this.xScaleFull(d.location[0]))
+                    .attr("cy", d => this.yScaleFull(d.location[1]))
+                    .attr("r", 1.5)
+                    .attr("fill", "black")
+                    .attr("fill-opacity", 0.3);
             }
         }
 
