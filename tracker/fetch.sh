@@ -5,10 +5,10 @@
 # Reading creds from 1password
 TRACTIVE_EMAIL=`op read "op://Personal/Tractive/username"`
 TRACTIVE_PASSWORD=`op read "op://Personal/Tractive/password"`
-DURATION_DAYS=1
+DURATION_DAYS=90
 
 # Lifted from tractive npm module
-CLIENT_ID=${TRACTIVE_CLIENT_ID:-"6536c228870a3c8857d452e8"} 
+CLIENT_ID=${TRACTIVE_CLIENT_ID:-"6536c228870a3c8857d452e8"}
 
 RESPONSE=$(curl -s -X POST -G "https://graph.tractive.com/4/auth/token" \
   --data-urlencode "grant_type=tractive" \
@@ -48,16 +48,16 @@ echo ""
 
 for TRACKER_ID in $TRACKER_IDS; do
   echo "Fetching history for tracker: $TRACKER_ID"
-  
+
   HISTORY_RESPONSE=$(curl -s -X GET "https://graph.tractive.com/4/tracker/$TRACKER_ID/positions?time_from=$FROM_TIMESTAMP&time_to=$TO_TIMESTAMP&format=json_segments" \
     -H "X-Tractive-Client: $CLIENT_ID" \
     -H "Authorization: Bearer $TRACTIVE_TOKEN" \
     -H "Content-Type: application/json")
-  
+
   # Write response to file named after tracker
   OUTPUT_FILE="${TRACKER_ID}_${DURATION_DAYS}.json"
   echo "$HISTORY_RESPONSE" | jq '.' > "$OUTPUT_FILE"
-  
+
   echo "Saved tracker history to $OUTPUT_FILE"
 done
 
