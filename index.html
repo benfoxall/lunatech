@@ -1,372 +1,443 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lunatech</title>
-</head>
-<body>
+  </head>
+  <body>
     <div id="dashboard-container">
-        <svg id="heatmap"></svg>
-        <svg id="timeline"></svg>
-        <svg id="timeOfDay"></svg>
+      <svg id="heatmap"></svg>
+      <svg id="timeline"></svg>
+      <svg id="timeOfDay"></svg>
     </div>
     <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* Center the dashboard container */
-            margin: 0;
-            font-family: sans-serif;
-        }
-        #dashboard-container {
-            width: 100%;
-            max-width: 800px; /* Max width for desktop viewing */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        svg {
-            display: block;
-            width: 100%;
-            height: auto;
-            margin-bottom: 20px;
-            
-            box-sizing: border-box; /* Include padding and border in the element's total width and height */
-        }
-        .hexagon {
-            stroke: none;
-        }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Center the dashboard container */
+        margin: 0;
+        font-family: sans-serif;
+      }
+      #dashboard-container {
+        width: 100%;
+        max-width: 800px; /* Max width for desktop viewing */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin-bottom: 20px;
+
+        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+      }
+      .hexagon {
+        stroke: none;
+      }
     </style>
     <script type="module">
-        import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
-        import { hexbin } from "https://cdn.skypack.dev/d3-hexbin";
+      import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+      import { hexbin } from "https://cdn.skypack.dev/d3-hexbin";
 
-        let data;
-        let heatmap, timeline, timeOfDay;
-        let filteredData; // Global variable to store currently filtered data
+      let data;
+      let heatmap, timeline, timeOfDay;
+      let filteredData; // Global variable to store currently filtered data
 
-        async function main() {
-            const rawData = await d3.json("locations.json");
-            data = rawData.flat().filter(d => d.location[0] !== 0 && d.location[1] !== 0);
-            window.data = data; // Keep original data accessible
+      async function main() {
+        const rawData = await d3.json("locations.json");
+        data = rawData.flat().filter(d => d.location[0] !== 0 && d.location[1] !== 0);
+        window.data = data; // Keep original data accessible
 
-            filteredData = data; // Initialize filtered data with full dataset
+        filteredData = data; // Initialize filtered data with full dataset
 
-            heatmap = new Heatmap();
-            timeline = new Timeline();
-            timeOfDay = new TimeOfDayChart();
+        heatmap = new Heatmap();
+        timeline = new Timeline();
+        timeOfDay = new TimeOfDayChart();
 
-            
+        // updateCharts(); // Redundant, charts are drawn in constructors via resize()
 
-            
+        let resizeTimer;
+        window.addEventListener("resize", () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            heatmap.resize();
+            timeline.resize();
+            timeOfDay.resize();
+          }, 200); // Debounce for 200ms
+        });
+      }
 
-            
+      function updateCharts() {
+        heatmap.draw(filteredData);
+        timeline.draw(data);
+        timeOfDay.draw(filteredData);
+      }
 
-            // updateCharts(); // Redundant, charts are drawn in constructors via resize()
+      function onBrush(event) {
+        if (event.sourceEvent) {
+          // Check if the event is a user interaction
+          if (this instanceof Timeline) {
+            timeline.selection = event.selection;
+          } else if (this instanceof TimeOfDayChart) {
+            timeOfDay.selection = event.selection;
+          }
+        }
 
-            let resizeTimer;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(() => {
-                    heatmap.resize();
-                    timeline.resize();
-                    timeOfDay.resize();
-                }, 200); // Debounce for 200ms
+        filteredData = data; // Start with full data for filtering
+
+        if (timeline.selection) {
+          const [x0, x1] = timeline.selection.map(timeline.x.invert);
+          filteredData = filteredData.filter((d) => {
+            const date = new Date(d.time * 1000);
+            return date >= x0 && date <= x1;
+          });
+        }
+
+        if (timeOfDay.selection) {
+          const [x0, x1] = timeOfDay.selection;
+          const domain = timeOfDay.x.domain();
+          const bandwidth = timeOfDay.x.bandwidth();
+
+          const hour0 = domain.find((h) => timeOfDay.x(h) + bandwidth >= x0);
+          const hour1 = domain
+            .slice()
+            .reverse()
+            .find((h) => timeOfDay.x(h) <= x1);
+
+          if (hour0 !== undefined && hour1 !== undefined) {
+            filteredData = filteredData.filter((d) => {
+              const hour = new Date(d.time * 1000).getHours();
+              return hour >= hour0 && hour <= hour1;
             });
+          }
         }
 
-        function updateCharts() {
-            heatmap.draw(filteredData);
-            timeline.draw(data);
-            timeOfDay.draw(filteredData);
+        updateCharts(); // Redraw all charts with new filtered data
+      }
+
+      class Heatmap {
+        constructor() {
+          this.margin = { top: 20, right: 30, bottom: 40, left: 40 };
+          this.svgElement = d3.select("#heatmap");
+
+          this.svg = this.svgElement
+            .append("g")
+            .attr(
+              "transform",
+              `translate(${this.margin.left},${this.margin.top})`
+            );
+
+          // Scales defined once based on full dataset
+          this.xScaleFull = d3
+            .scaleLinear()
+            .domain(d3.extent(data, (d) => d.location[0]))
+            .nice();
+
+          this.yScaleFull = d3
+            .scaleLinear()
+            .domain(d3.extent(data, (d) => d.location[1]))
+            .nice();
+
+          const [xMin, xMax] = this.xScaleFull.domain();
+          const [yMin, yMax] = this.yScaleFull.domain();
+          this.domainAspectRatio = (yMax - yMin) / (xMax - xMin);
+
+          const hexbinFnFull = hexbin()
+            .x((d) => this.xScaleFull(d.location[0]))
+            .y((d) => this.yScaleFull(d.location[1]))
+            .radius(10);
+
+          const binsFull = hexbinFnFull(data);
+
+          binsFull.forEach((bin) => {
+            bin.totalDuration = d3.sum(bin, (d) => d.duration);
+          });
+
+          this.colorScaleFull = d3
+            .scaleSequentialLog(d3.interpolateBuPu)
+            .domain([1, d3.max(binsFull, (d) => d.totalDuration)]);
+
+          // Append axes containers
+          this.xAxisGroup = this.svg.append("g");
+          this.yAxisGroup = this.svg.append("g");
+
+          this.resize(); // Initial sizing
         }
 
-        function onBrush(event) {
-            if (event.sourceEvent) { // Check if the event is a user interaction
-                if (this instanceof Timeline) {
-                    timeline.selection = event.selection;
-                } else if (this instanceof TimeOfDayChart) {
-                    timeOfDay.selection = event.selection;
-                }
-            }
-            
-            filteredData = data; // Start with full data for filtering
+        resize() {
+          this.width =
+            this.svgElement.node().getBoundingClientRect().width -
+            this.margin.left -
+            this.margin.right;
+          this.height = this.width * this.domainAspectRatio;
 
-            if (timeline.selection) {
-                const [x0, x1] = timeline.selection.map(timeline.x.invert);
-                filteredData = filteredData.filter(d => {
-                    const date = new Date(d.time * 1000);
-                    return date >= x0 && date <= x1;
-                });
-            }
+          this.svgElement
+            .attr("width", this.width + this.margin.left + this.margin.right)
+            .attr("height", this.height + this.margin.top + this.margin.bottom);
 
-            if (timeOfDay.selection) {
-                const [x0, x1] = timeOfDay.selection;
-                const domain = timeOfDay.x.domain();
-                const bandwidth = timeOfDay.x.bandwidth();
-                
-                const hour0 = domain.find(h => timeOfDay.x(h) + bandwidth >= x0);
-                const hour1 = domain.slice().reverse().find(h => timeOfDay.x(h) <= x1);
+          this.xScaleFull.range([0, this.width]);
+          this.yScaleFull.range([this.height, 0]);
 
-                if(hour0 !== undefined && hour1 !== undefined){
-                    filteredData = filteredData.filter(d => {
-                        const hour = new Date(d.time * 1000).getHours();
-                        return hour >= hour0 && hour <= hour1;
-                    });
-                }
-            }
+          this.xAxisGroup
+            .attr("transform", `translate(0,${this.height})`)
+            .call(d3.axisBottom(this.xScaleFull));
 
-            updateCharts(); // Redraw all charts with new filtered data
+          this.yAxisGroup.call(d3.axisLeft(this.yScaleFull));
+
+          this.draw(filteredData); // Redraw with current filtered data
         }
 
-        class Heatmap {
-            constructor() {
-                this.margin = { top: 20, right: 30, bottom: 40, left: 40 };
-                this.svgElement = d3.select("#heatmap");
+        draw(data) {
+          this.svg.selectAll(".hexagon-container").remove();
 
-                this.svg = this.svgElement
-                    .append("g")
-                    .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
-                
-                // Scales defined once based on full dataset
-                this.xScaleFull = d3.scaleLinear()
-                    .domain(d3.extent(data, d => d.location[0])).nice();
+          const hexbinFn = hexbin()
+            .x((d) => this.xScaleFull(d.location[0]))
+            .y((d) => this.yScaleFull(d.location[1]))
+            .radius(10)
+            .extent([
+              [0, 0],
+              [this.width, this.height],
+            ]); // Extent needs dynamic width/height
 
-                this.yScaleFull = d3.scaleLinear()
-                    .domain(d3.extent(data, d => d.location[1])).nice();
-                
-                const [xMin, xMax] = this.xScaleFull.domain();
-                const [yMin, yMax] = this.yScaleFull.domain();
-                this.domainAspectRatio = (yMax - yMin) / (xMax - xMin);
-                
-                const hexbinFnFull = hexbin()
-                    .x(d => this.xScaleFull(d.location[0]))
-                    .y(d => this.yScaleFull(d.location[1]))
-                    .radius(10);
-                
-                const binsFull = hexbinFnFull(data);
+          const bins = hexbinFn(data);
 
-                binsFull.forEach(bin => {
-                    bin.totalDuration = d3.sum(bin, d => d.duration);
-                });
+          bins.forEach((bin) => {
+            bin.totalDuration = d3.sum(bin, (d) => d.duration);
+          });
 
-                this.colorScaleFull = d3.scaleSequentialLog(d3.interpolateBuPu)
-                    .domain([1, d3.max(binsFull, d => d.totalDuration)]);
-                
-                // Append axes containers
-                this.xAxisGroup = this.svg.append("g");
-                this.yAxisGroup = this.svg.append("g");
+          this.svg
+            .append("g")
+            .attr("class", "hexagon-container")
+            .selectAll("path")
+            .data(bins)
+            .join("path")
+            .attr("d", hexbinFn.hexagon())
+            .attr("transform", (d) => `translate(${d.x},${d.y})`)
+            .attr("fill", (d) =>
+              d.totalDuration ? this.colorScaleFull(d.totalDuration) : "none"
+            )
+            .attr("class", "hexagon");
 
-                this.resize(); // Initial sizing
+          let pointsData = data;
+          const maxPoints = 2000;
+          if (data.length > maxPoints) {
+            pointsData = [];
+            const step = Math.floor(data.length / maxPoints);
+            for (let i = 0; i < data.length; i += step) {
+              pointsData.push(data[i]);
             }
+          }
 
-            resize() {
-                this.width = this.svgElement.node().getBoundingClientRect().width - this.margin.left - this.margin.right;
-                this.height = this.width * this.domainAspectRatio; 
+          this.svg.selectAll(".points-container").remove();
+          this.svg
+            .append("g")
+            .attr("class", "points-container")
+            .selectAll("circle")
+            .data(pointsData)
+            .join("circle")
+            .attr("cx", (d) => this.xScaleFull(d.location[0]))
+            .attr("cy", (d) => this.yScaleFull(d.location[1]))
+            .attr("r", 1.5)
+            .attr("fill", "black")
+            .attr("fill-opacity", 0.3);
+        }
+      }
 
-                this.svgElement
-                    .attr("width", this.width + this.margin.left + this.margin.right)
-                    .attr("height", this.height + this.margin.top + this.margin.bottom);
-                
-                this.xScaleFull.range([0, this.width]);
-                this.yScaleFull.range([this.height, 0]);
+      class Timeline {
+        constructor() {
+          this.margin = { top: 10, right: 30, bottom: 30, left: 40 };
+          this.svgElement = d3.select("#timeline");
+          this.height = 150 - this.margin.top - this.margin.bottom; // Fixed height for timeline
+          this.selection = null;
 
-                this.xAxisGroup
-                    .attr("transform", `translate(0,${this.height})`)
-                    .call(d3.axisBottom(this.xScaleFull));
+          this.svg = this.svgElement
+            .append("g")
+            .attr(
+              "transform",
+              `translate(${this.margin.left},${this.margin.top})`
+            );
 
-                this.yAxisGroup
-                    .call(d3.axisLeft(this.yScaleFull));
+          this.xAxisGroup = this.svg
+            .append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0,${this.height})`);
 
-                this.draw(filteredData); // Redraw with current filtered data
-            }
+          this.bars = this.svg.append("g");
 
-            draw(data) {
-                this.svg.selectAll(".hexagon-container").remove();
+          this.brush = d3
+            .brushX()
+            .extent([
+              [0, 0],
+              [1, this.height],
+            ]) // Use 1 for width initially, will be updated by resize
+            .on("brush end", onBrush.bind(this)); // Listen to both brush and end events
 
-                const hexbinFn = hexbin()
-                    .x(d => this.xScaleFull(d.location[0]))
-                    .y(d => this.yScaleFull(d.location[1]))
-                    .radius(10)
-                    .extent([[0, 0], [this.width, this.height]]); // Extent needs dynamic width/height
+          this.brushGroup = this.svg
+            .append("g")
+            .attr("class", "brush")
+            .call(this.brush);
 
-                const bins = hexbinFn(data);
-
-                bins.forEach(bin => {
-                    bin.totalDuration = d3.sum(bin, d => d.duration);
-                });
-
-                this.svg.append("g")
-                    .attr("class", "hexagon-container")
-                    .selectAll("path")
-                    .data(bins)
-                    .join("path")
-                    .attr("d", hexbinFn.hexagon())
-                    .attr("transform", d => `translate(${d.x},${d.y})`)
-                    .attr("fill", d => d.totalDuration ? this.colorScaleFull(d.totalDuration) : "none")
-                    .attr("class", "hexagon");
-
-                let pointsData = data;
-                const maxPoints = 2000;
-                if (data.length > maxPoints) {
-                    pointsData = [];
-                    const step = Math.floor(data.length / maxPoints);
-                    for (let i = 0; i < data.length; i += step) {
-                        pointsData.push(data[i]);
-                    }
-                }
-
-                this.svg.selectAll(".points-container").remove();
-                this.svg.append("g")
-                    .attr("class", "points-container")
-                    .selectAll("circle")
-                    .data(pointsData)
-                    .join("circle")
-                    .attr("cx", d => this.xScaleFull(d.location[0]))
-                    .attr("cy", d => this.yScaleFull(d.location[1]))
-                    .attr("r", 1.5)
-                    .attr("fill", "black")
-                    .attr("fill-opacity", 0.3);
-            }
+          this.resize(); // Initial sizing
         }
 
-        class Timeline {
-            constructor() {
-                this.margin = { top: 10, right: 30, bottom: 30, left: 40 };
-                this.svgElement = d3.select("#timeline");
-                this.height = 150 - this.margin.top - this.margin.bottom; // Fixed height for timeline
-                this.selection = null;
+        resize() {
+          this.width =
+            this.svgElement.node().getBoundingClientRect().width -
+            this.margin.left -
+            this.margin.right;
+          if (this.width < 10) this.width = 10; // Minimum width
 
-                this.svg = this.svgElement
-                    .append("g")
-                    .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
+          this.svgElement
+            .attr("width", this.width + this.margin.left + this.margin.right)
+            .attr("height", this.height + this.margin.top + this.margin.bottom);
 
-                this.xAxisGroup = this.svg.append("g")
-                    .attr("class", "axis")
-                    .attr("transform", `translate(0,${this.height})`);
+          this.x = d3
+            .scaleTime()
+            .domain(d3.extent(window.data, (d) => new Date(d.time * 1000)))
+            .range([0, this.width]);
 
-                this.bars = this.svg.append("g");
+          this.xAxisGroup
+            .attr("transform", `translate(0,${this.height})`)
+            .call(d3.axisBottom(this.x));
 
-                this.brush = d3.brushX()
-                    .extent([[0, 0], [1, this.height]]) // Use 1 for width initially, will be updated by resize
-                    .on("brush end", onBrush.bind(this)); // Listen to both brush and end events
-
-                this.brushGroup = this.svg.append("g")
-                    .attr("class", "brush")
-                    .call(this.brush);
-                
-                this.resize(); // Initial sizing
-            }
-
-            resize() {
-                this.width = this.svgElement.node().getBoundingClientRect().width - this.margin.left - this.margin.right;
-                if (this.width < 10) this.width = 10; // Minimum width
-
-                this.svgElement
-                    .attr("width", this.width + this.margin.left + this.margin.right)
-                    .attr("height", this.height + this.margin.top + this.margin.bottom);
-                
-                this.x = d3.scaleTime()
-                    .domain(d3.extent(window.data, d => new Date(d.time * 1000)))
-                    .range([0, this.width]);
-                
-                this.xAxisGroup
-                    .attr("transform", `translate(0,${this.height})`)
-                    .call(d3.axisBottom(this.x));
-                
-                this.brushGroup.call(this.brush.extent([[0, 0], [this.width, this.height]])); // Update brush extent
-                this.draw(data); // Redraw with full dataset
-            }
-
-            draw(data) {
-                const dataByDay = d3.rollup(data, v => v.length, d => d3.timeDay.floor(new Date(d.time * 1000)));
-                const timelineData = Array.from(dataByDay, ([key, value]) => ({ date: key, count: value }));
-
-                const y = d3.scaleLinear()
-                    .domain([0, d3.max(timelineData, d => d.count)]).nice()
-                    .range([this.height, 0]);
-
-                this.bars.selectAll("rect")
-                    .data(timelineData)
-                    .join("rect")
-                    .attr("x", d => this.x(d.date))
-                    .attr("y", d => y(d.count))
-                    .attr("width", 5)
-                    .attr("height", d => this.height - y(d.count))
-                    .attr("fill", "steelblue");
-            }
+          this.brushGroup.call(
+            this.brush.extent([
+              [0, 0],
+              [this.width, this.height],
+            ])
+          ); // Update brush extent
+          this.draw(data); // Redraw with full dataset
         }
 
-        class TimeOfDayChart {
-            constructor() {
-                this.margin = { top: 10, right: 30, bottom: 30, left: 40 };
-                this.svgElement = d3.select("#timeOfDay");
-                this.height = 150 - this.margin.top - this.margin.bottom; // Fixed height for time of day chart
-                this.selection = null;
+        draw(data) {
+          const dataByDay = d3.rollup(
+            data,
+            (v) => v.length,
+            (d) => d3.timeDay.floor(new Date(d.time * 1000))
+          );
+          const timelineData = Array.from(dataByDay, ([key, value]) => ({
+            date: key,
+            count: value,
+          }));
 
-                this.svg = this.svgElement
-                    .append("g")
-                    .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
+          const y = d3
+            .scaleLinear()
+            .domain([0, d3.max(timelineData, (d) => d.count)])
+            .nice()
+            .range([this.height, 0]);
 
-                this.xAxisGroup = this.svg.append("g")
-                    .attr("class", "axis")
-                    .attr("transform", `translate(0,${this.height})`);
+          this.bars
+            .selectAll("rect")
+            .data(timelineData)
+            .join("rect")
+            .attr("x", (d) => this.x(d.date))
+            .attr("y", (d) => y(d.count))
+            .attr("width", 5)
+            .attr("height", (d) => this.height - y(d.count))
+            .attr("fill", "steelblue");
+        }
+      }
 
-                this.bars = this.svg.append("g");
+      class TimeOfDayChart {
+        constructor() {
+          this.margin = { top: 10, right: 30, bottom: 30, left: 40 };
+          this.svgElement = d3.select("#timeOfDay");
+          this.height = 150 - this.margin.top - this.margin.bottom; // Fixed height for time of day chart
+          this.selection = null;
 
-                this.brush = d3.brushX()
-                    .extent([[0, 0], [1, this.height]]) // Use 1 for width initially, will be updated by resize
-                    .on("brush end", onBrush.bind(this)); // Listen to both brush and end events
+          this.svg = this.svgElement
+            .append("g")
+            .attr(
+              "transform",
+              `translate(${this.margin.left},${this.margin.top})`
+            );
 
-                this.brushGroup = this.svg.append("g")
-                    .attr("class", "brush")
-                    .call(this.brush);
-                
-                this.resize(); // Initial sizing
-            }
+          this.xAxisGroup = this.svg
+            .append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0,${this.height})`);
 
-            resize() {
-                this.width = this.svgElement.node().getBoundingClientRect().width - this.margin.left - this.margin.right;
-                if (this.width < 10) this.width = 10; // Minimum width
+          this.bars = this.svg.append("g");
 
-                this.svgElement
-                    .attr("width", this.width + this.margin.left + this.margin.right)
-                    .attr("height", this.height + this.margin.top + this.margin.bottom);
-                
-                this.x = d3.scaleBand()
-                    .domain(d3.range(24))
-                    .range([0, this.width])
-                    .padding(0.1);
-                
-                this.xAxisGroup
-                    .attr("transform", `translate(0,${this.height})`)
-                    .call(d3.axisBottom(this.x));
+          this.brush = d3
+            .brushX()
+            .extent([
+              [0, 0],
+              [1, this.height],
+            ]) // Use 1 for width initially, will be updated by resize
+            .on("brush end", onBrush.bind(this)); // Listen to both brush and end events
 
-                this.brushGroup.call(this.brush.extent([[0, 0], [this.width, this.height]])); // Update brush extent
-                this.draw(filteredData); // Redraw with current filtered data
-            }
+          this.brushGroup = this.svg
+            .append("g")
+            .attr("class", "brush")
+            .call(this.brush);
 
-            draw(data) {
-                const dataByHour = d3.rollup(data, v => v.length, d => new Date(d.time * 1000).getHours());
-                const timeOfDayData = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: dataByHour.get(i) || 0 }));
-
-                const y = d3.scaleLinear()
-                    .domain([0, d3.max(timeOfDayData, d => d.count)]).nice()
-                    .range([this.height, 0]);
-
-                this.bars.selectAll("rect")
-                    .data(timeOfDayData)
-                    .join("rect")
-                    .attr("x", d => this.x(d.hour))
-                    .attr("y", d => y(d.count))
-                    .attr("width", this.x.bandwidth())
-                    .attr("height", d => this.height - y(d.count))
-                    .attr("fill", "steelblue");
-            }
+          this.resize(); // Initial sizing
         }
 
-        main();
+        resize() {
+          this.width =
+            this.svgElement.node().getBoundingClientRect().width -
+            this.margin.left -
+            this.margin.right;
+          if (this.width < 10) this.width = 10; // Minimum width
+
+          this.svgElement
+            .attr("width", this.width + this.margin.left + this.margin.right)
+            .attr("height", this.height + this.margin.top + this.margin.bottom);
+
+          this.x = d3
+            .scaleBand()
+            .domain(d3.range(24))
+            .range([0, this.width])
+            .padding(0.1);
+
+          this.xAxisGroup
+            .attr("transform", `translate(0,${this.height})`)
+            .call(d3.axisBottom(this.x));
+
+          this.brushGroup.call(
+            this.brush.extent([
+              [0, 0],
+              [this.width, this.height],
+            ])
+          ); // Update brush extent
+          this.draw(filteredData); // Redraw with current filtered data
+        }
+
+        draw(data) {
+          const dataByHour = d3.rollup(
+            data,
+            (v) => v.length,
+            (d) => new Date(d.time * 1000).getHours()
+          );
+          const timeOfDayData = Array.from({ length: 24 }, (_, i) => ({
+            hour: i,
+            count: dataByHour.get(i) || 0,
+          }));
+
+          const y = d3
+            .scaleLinear()
+            .domain([0, d3.max(timeOfDayData, (d) => d.count)])
+            .nice()
+            .range([this.height, 0]);
+
+          this.bars
+            .selectAll("rect")
+            .data(timeOfDayData)
+            .join("rect")
+            .attr("x", (d) => this.x(d.hour))
+            .attr("y", (d) => y(d.count))
+            .attr("width", this.x.bandwidth())
+            .attr("height", (d) => this.height - y(d.count))
+            .attr("fill", "steelblue");
+        }
+      }
+
+      main();
     </script>
-    </body>
-    </html>
+  </body>
+</html>
