@@ -49,6 +49,8 @@
       async function main() {
         const rawData = await d3.json("locations.json");
         data = rawData.flat();
+        data = data.filter((d) => d.pos_uncertainty < 50); // remove some of the more random points
+
         window.data = data; // Keep original data accessible
 
         filteredData = data; // Initialize filtered data with full dataset
