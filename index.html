@@ -57,7 +57,7 @@
 
         heatmap = new Heatmap();
         timeline = new Timeline();
-        timeOfDay = new TimeOfDayChart();
+        timeOfDay = new TimeOfDayChart(data);
 
         // updateCharts(); // Redundant, charts are drawn in constructors via resize()
 
@@ -75,7 +75,7 @@
       function updateCharts() {
         heatmap.draw(filteredData);
         timeline.draw(data);
-        timeOfDay.draw(filteredData);
+        timeOfDay.draw(timeOfDay.chartData);
       }
 
       function onBrush(event) {
@@ -88,16 +88,18 @@
           }
         }
 
-        filteredData = data; // Start with full data for filtering
-
+        // First, filter by date for the time-of-day chart
+        timeOfDay.chartData = data;
         if (timeline.selection) {
           const [x0, x1] = timeline.selection.map(timeline.x.invert);
-          filteredData = filteredData.filter((d) => {
+          timeOfDay.chartData = data.filter((d) => {
             const date = new Date(d.time * 1000);
             return date >= x0 && date <= x1;
           });
         }
 
+        // Then, further filter for the heatmap
+        filteredData = timeOfDay.chartData;
         if (timeOfDay.selection) {
           const [x0, x1] = timeOfDay.selection;
           const domain = timeOfDay.x.domain();
@@ -110,7 +112,7 @@
             .find((h) => timeOfDay.x(h) <= x1);
 
           if (hour0 !== undefined && hour1 !== undefined) {
-            filteredData = filteredData.filter((d) => {
+            filteredData = timeOfDay.chartData.filter((d) => {
               const hour = new Date(d.time * 1000).getHours();
               return hour >= hour0 && hour <= hour1;
             });
@@ -174,7 +176,7 @@
             this.svgElement.node().getBoundingClientRect().width -
             this.margin.left -
             this.margin.right;
-          this.height = this.width * this.domainAspectRatio;
+          this.height = this.width * (3 / 5);
 
           this.svgElement
             .attr("width", this.width + this.margin.left + this.margin.right)
@@ -337,14 +339,40 @@
             .join("rect")
             .attr("x", (d) => this.x(d.date))
             .attr("y", (d) => y(d.count))
-            .attr("width", 5)
+            .attr("width", (d) => {
+              const startOfDay = this.x(d.date);
+              // Get the x-position of the start of the next day
+              const endOfCurrentDay = this.x(d3.timeDay.offset(d.date, 1));
+              const dayWidth = endOfCurrentDay - startOfDay;
+              return Math.max(0, dayWidth - 1); // Subtract 1px for the gap
+            })
             .attr("height", (d) => this.height - y(d.count))
-            .attr("fill", "steelblue");
+            .attr("fill", (d) => {
+              if (!this.selection) return "steelblue";
+              const [x0_brush, x1_brush] = this.selection;
+              const barXStart = this.x(d.date);
+              const barXEnd = barXStart + 5; // Bar width is 5
+              if (barXEnd > x0_brush && barXStart < x1_brush) {
+                return "steelblue";
+              }
+              return "lightgray";
+            })
+            .attr("fill-opacity", (d) => {
+              if (!this.selection) return 1;
+              const [x0_brush, x1_brush] = this.selection;
+              const barXStart = this.x(d.date);
+              const barXEnd = barXStart + 5;
+              if (barXEnd > x0_brush && barXStart < x1_brush) {
+                return 1;
+              }
+              return 0.5;
+            });
         }
       }
 
       class TimeOfDayChart {
-        constructor() {
+        constructor(initialData) {
+          this.chartData = initialData;
           this.margin = { top: 10, right: 30, bottom: 30, left: 40 };
           this.svgElement = d3.select("#timeOfDay");
           this.height = 150 - this.margin.top - this.margin.bottom; // Fixed height for time of day chart
@@ -391,11 +419,29 @@
             .attr("width", this.width + this.margin.left + this.margin.right)
             .attr("height", this.height + this.margin.top + this.margin.bottom);
 
+          const numBars = 24;
+          let desiredGap = 1;
+          const totalAvailableWidth = this.width;
+
+          // Calculate barWidth if there were no gaps to check for minimum width
+          let tempBarWidth = totalAvailableWidth / numBars;
+
+          // If the available width is too small to maintain 1px gaps and still have positive bar width
+          if (totalAvailableWidth - (numBars - 1) * desiredGap < 0) {
+            desiredGap = 0; // Eliminate gaps if space is too constrained
+          }
+          
+          const barWidth = (totalAvailableWidth - (numBars - 1) * desiredGap) / numBars;
+          const step = barWidth + desiredGap;
+          const paddingInnerRatio = step > 0 ? desiredGap / step : 0; // Avoid division by zero
+
+
           this.x = d3
             .scaleBand()
-            .domain(d3.range(24))
+            .domain(d3.range(numBars))
             .range([0, this.width])
-            .padding(0.1);
+            .paddingInner(paddingInnerRatio)
+            .paddingOuter(0);
 
           this.xAxisGroup
             .attr("transform", `translate(0,${this.height})`)
@@ -404,10 +450,11 @@
           this.brushGroup.call(
             this.brush.extent([
               [0, 0],
-              [this.width, this.height],
+              [this.width, this.height]
             ])
           ); // Update brush extent
-          this.draw(filteredData); // Redraw with current filtered data
+
+          this.draw(this.chartData); // Redraw with current filtered data
         }
 
         draw(data) {
@@ -435,7 +482,27 @@
             .attr("y", (d) => y(d.count))
             .attr("width", this.x.bandwidth())
             .attr("height", (d) => this.height - y(d.count))
-            .attr("fill", "steelblue");
+            .attr("fill", (d) => {
+              if (!this.selection) return "steelblue";
+              const [x0_brush, x1_brush] = this.selection;
+              const barXStart = this.x(d.hour);
+              const barXEnd = barXStart + this.x.bandwidth();
+              // Check for overlap between bar and brush selection
+              if (barXEnd > x0_brush && barXStart < x1_brush) {
+                return "steelblue";
+              }
+              return "lightgray";
+            })
+            .attr("fill-opacity", (d) => {
+              if (!this.selection) return 1;
+              const [x0_brush, x1_brush] = this.selection;
+              const barXStart = this.x(d.hour);
+              const barXEnd = barXStart + this.x.bandwidth();
+              if (barXEnd > x0_brush && barXStart < x1_brush) {
+                return 1;
+              }
+              return 0.5;
+            });
         }
       }
 
