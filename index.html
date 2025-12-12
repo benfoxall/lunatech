@@ -48,7 +48,7 @@
 
       async function main() {
         const rawData = await d3.json("locations.json");
-        data = rawData.flat().filter(d => d.location[0] !== 0 && d.location[1] !== 0);
+        data = rawData.flat();
         window.data = data; // Keep original data accessible
 
         filteredData = data; // Initialize filtered data with full dataset
