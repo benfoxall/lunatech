@@ -1,85 +1,65 @@
+import { z, ZodType } from "zod";
+import { auth, positions, trackers } from "./TractiveSchemas.ts";
+
 const CLIENT_ID = "6536c228870a3c8857d452e8";
 
-// todo: parse with zod to ensure user_id is valid
-type AuthResponse = {
-  user_id: string;
-  client_id: string;
-  expires_at: number;
-  access_token: string;
-};
-
-type GetTrackersResponse = {
-  _id: string;
-  _type: string;
-  _version: string;
-}[];
-
-type PositionsResponse = [
-  {
-    time: number;
-    latlong: [number, number];
-    alt: number;
-    speed: null | number;
-    course: null | number;
-    pos_uncertainty: number;
-    sensor_used: string;
-  }[]
-];
-
 export class TractiveClient {
-  private authResponse?: AuthResponse;
+  private authResponse: z.infer<typeof auth> | null = null;
 
-  async auth(email: string, password: string) {
-    const params = new URLSearchParams({
-      grant_type: "tractive",
-      platform_email: email,
-      platform_token: password,
-    });
+  private async request<S>(
+    url: string,
+    init: RequestInit = {},
+    schema: ZodType<S> = z.any()
+  ): Promise<S> {
+    const headers = new Headers(init.headers);
 
-    const url = `https://graph.tractive.com/4/auth/token?${params}`;
+    headers.set("X-Tractive-Client", CLIENT_ID);
+    headers.set("Content-Type", "application/json");
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tractive-Client": CLIENT_ID,
-      },
-    });
+    if (this.authResponse) {
+      headers.set("Authorization", `Bearer ${this.authResponse.access_token}`);
+    }
+
+    const response = await fetch(url, { ...init, headers });
 
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    this.authResponse = await response.json();
+    const json = await response.json();
 
-    return true;
+    const parsed = schema.parse(json);
+
+    return parsed;
   }
 
-  async getTrackers(): Promise<GetTrackersResponse> {
+  async login(email: string, password: string) {
+    this.authResponse = null;
+
+    const url = `https://graph.tractive.com/4/auth/token?${new URLSearchParams({
+      grant_type: "tractive",
+      platform_email: email,
+      platform_token: password,
+    })}`;
+
+    this.authResponse = await this.request(
+      url,
+      {
+        method: "POST",
+      },
+      auth
+    );
+  }
+
+  async getTrackers() {
     if (!this.authResponse) throw new Error("Not authenticated");
 
     const url = `https://graph.tractive.com/4/user/${this.authResponse.user_id}/trackers`;
 
-    const response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tractive-Client": CLIENT_ID,
-        Authorization: `Bearer ${this.authResponse.access_token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    return this.request(url, {}, trackers);
   }
 
-  async getPositions(
-    tracker: string,
-    from: Date,
-    to: Date
-  ): Promise<PositionsResponse> {
+  async getPositions(tracker: string, from: Date, to: Date) {
     if (!this.authResponse) throw new Error("Not authenticated");
 
     function format(date: Date) {
@@ -94,19 +74,6 @@ export class TractiveClient {
 
     const url = `https://graph.tractive.com/4/tracker/${tracker}/positions?${params}`;
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tractive-Client": CLIENT_ID,
-        Authorization: `Bearer ${this.authResponse.access_token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    return this.request(url, {}, positions);
   }
 }

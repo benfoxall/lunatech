@@ -3,7 +3,7 @@ import { addDays } from "./util.ts";
 
 const client = new TractiveClient();
 
-await client.auth(process.env.TRACTIVE_EMAIL, process.env.TRACTIVE_PASSWORD);
+await client.login(process.env.TRACTIVE_EMAIL, process.env.TRACTIVE_PASSWORD);
 
 const trakers = await client.getTrackers();
 
