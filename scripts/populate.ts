@@ -1,9 +1,13 @@
 import { TractiveClient } from "../lib/TractiveClient.ts";
-import { addDays } from "./util.ts";
+import { addDays } from "../lib/util.ts";
 
 const client = new TractiveClient();
 
-await client.login(process.env.TRACTIVE_EMAIL, process.env.TRACTIVE_PASSWORD);
+const { TRACTIVE_EMAIL, TRACTIVE_PASSWORD } = process.env;
+if (!(TRACTIVE_EMAIL && TRACTIVE_PASSWORD))
+  throw new Error("Missing TRACTIVE_EMAIL & TRACTIVE_PASSWORD env vars");
+
+await client.login(TRACTIVE_EMAIL, TRACTIVE_PASSWORD);
 
 const trakers = await client.getTrackers();
 
