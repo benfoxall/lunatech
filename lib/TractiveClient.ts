@@ -23,7 +23,9 @@ export class TractiveClient {
     const response = await fetch(url, { ...init, headers });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      throw new Error(
+        `HTTP error! Status: ${response.status}. \n${await response.text()}`
+      );
     }
 
     const json = await response.json();
@@ -42,13 +44,7 @@ export class TractiveClient {
       platform_token: password,
     })}`;
 
-    this.authResponse = await this.request(
-      url,
-      {
-        method: "POST",
-      },
-      auth
-    );
+    this.authResponse = await this.request(url, { method: "POST" }, auth);
   }
 
   async getTrackers() {
