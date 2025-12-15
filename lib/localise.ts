@@ -12,12 +12,13 @@ interface Out {
 /** Convert a path into a coordinate frame */
 export function localise<T extends In>(
   obj: T,
-  [lat, lon]: [lat: number, lon: number]
+  origin: T
 ): Omit<T, keyof In> & Out {
   const { latlong, alt, ...rest } = obj;
 
   const [x, y] = proj(
-    `+proj=aeqd +lat_0=${lat} +lon_0=${lon} +datum=WGS84 +units=m +no_defs`,
+    // not sure why these are reversed…
+    `+proj=aeqd +lat_0=${origin.latlong[1]} +lon_0=${origin.latlong[0]} +datum=WGS84 +units=m +no_defs`,
     latlong
   );
 
