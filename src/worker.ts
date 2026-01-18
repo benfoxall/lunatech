@@ -6,6 +6,13 @@ import { dashboardPage } from './views/dashboard.ts';
 
 const app = new Hono();
 
+// SECURITY NOTE: This proof-of-concept passes credentials via query parameters for simplicity.
+// For production use, implement proper session management:
+// - Use encrypted session cookies
+// - Store sessions in Cloudflare Workers KV or Durable Objects
+// - Implement token-based authentication
+// - Never pass credentials in URLs (they appear in logs and browser history)
+
 // Helper to parse Basic Auth header
 function parseBasicAuth(authHeader: string | null): { email: string; password: string } | null {
   if (!authHeader || !authHeader.startsWith('Basic ')) {
