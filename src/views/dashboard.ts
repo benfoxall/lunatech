@@ -1,7 +1,11 @@
 // Dashboard page that displays the tracker visualization
 export function dashboardPage(trackerId: string, positionsData: any, email: string, password: string): string {
   // Convert positions data to JSON string for embedding in the page
-  const dataJson = JSON.stringify(positionsData);
+  // Escape to prevent XSS via script injection
+  const dataJson = JSON.stringify(positionsData)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
   
   return `<!DOCTYPE html>
 <html lang="en">
