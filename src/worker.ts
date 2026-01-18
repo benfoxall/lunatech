@@ -6,6 +6,10 @@ import { dashboardPage } from './views/dashboard.ts';
 
 const app = new Hono();
 
+// Configuration
+const DEFAULT_HISTORY_DAYS = 120;
+const MAX_AUTH_HEADER_LENGTH = 4096; // Prevent DoS through large headers
+
 // SECURITY NOTE: This proof-of-concept passes credentials via query parameters for simplicity.
 // For production use, implement proper session management:
 // - Use encrypted session cookies
@@ -19,15 +23,33 @@ function parseBasicAuth(authHeader: string | null): { email: string; password: s
     return null;
   }
   
-  const base64 = authHeader.slice(6);
-  const decoded = atob(base64);
-  const [email, password] = decoded.split(':');
-  
-  if (!email || !password) {
+  // Prevent DoS through large headers
+  if (authHeader.length > MAX_AUTH_HEADER_LENGTH) {
     return null;
   }
   
-  return { email, password };
+  try {
+    const base64 = authHeader.slice(6);
+    const decoded = atob(base64);
+    
+    // Split only on the first colon to handle passwords with colons
+    const colonIndex = decoded.indexOf(':');
+    if (colonIndex === -1) {
+      return null;
+    }
+    
+    const email = decoded.slice(0, colonIndex);
+    const password = decoded.slice(colonIndex + 1);
+    
+    if (!email || !password) {
+      return null;
+    }
+    
+    return { email, password };
+  } catch (error) {
+    // Invalid base64 or other parsing error
+    return null;
+  }
 }
 
 // Homepage route
@@ -100,10 +122,10 @@ app.get('/tracker/:trackerId', async (c) => {
     const client = new TractiveClient();
     await client.login(email, password);
     
-    // Fetch positions for the last 120 days
+    // Fetch positions for the configured history period
     const to = new Date();
     const from = new Date(to);
-    from.setDate(from.getDate() - 120);
+    from.setDate(from.getDate() - DEFAULT_HISTORY_DAYS);
     
     const positions = await client.getPositions(trackerId, from, to);
     
@@ -130,7 +152,7 @@ app.get('/api/tracker/:trackerId/positions', async (c) => {
     
     const to = new Date();
     const from = new Date(to);
-    from.setDate(from.getDate() - 120);
+    from.setDate(from.getDate() - DEFAULT_HISTORY_DAYS);
     
     const positions = await client.getPositions(trackerId, from, to);
     
