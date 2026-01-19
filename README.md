@@ -32,19 +32,35 @@ npm run deploy
 
 1. Visit the homepage to learn about the app
 2. Click "Get Started" to authenticate
-3. Enter your Tractive credentials when prompted (HTTP Basic Auth)
-4. View your list of trackers
-5. Click on a tracker to see the movement dashboard
+3. Enter your Tractive email and password in the login form
+4. The app will create a secure session cookie with your Tractive API token
+5. View your list of trackers
+6. Click on a tracker to see the movement dashboard
+7. Use the logout link to end your session
 
-## Security Notice
+## Authentication & Security
 
-⚠️ **Current Implementation**: This proof-of-concept passes credentials via query parameters for simplicity. This is **not secure for production use** as credentials can be exposed in browser history, server logs, and referrer headers.
+The app uses a secure session-based authentication flow:
 
-**For Production**: Implement proper session management using:
-- Encrypted session cookies
-- Cloudflare Workers KV or Durable Objects for session storage
-- Token-based authentication
-- HTTPS enforcement
+1. **Login**: Users submit their Tractive credentials via a POST form (not HTTP Basic Auth)
+2. **Token Storage**: The Tractive API returns an access token and user ID
+3. **Session Cookie**: The token is stored in an HTTP-only, secure cookie
+4. **Subsequent Requests**: All API calls use the session cookie (no credentials in URLs)
+5. **Logout**: Users can explicitly end their session, which deletes the cookie
+
+**Security Features**:
+- ✅ No credentials in URLs or query parameters
+- ✅ HTTP-only cookies prevent XSS access
+- ✅ Secure flag ensures HTTPS-only transmission
+- ✅ SameSite protection against CSRF
+- ✅ Session tokens expire after 7 days
+- ✅ XSS protection for embedded JSON data
+
+**For Enhanced Production Security**:
+- Use Cloudflare Workers KV or Durable Objects for server-side session storage
+- Implement CSRF token validation
+- Add rate limiting on login attempts
+- Enable Cloudflare's Bot Management
 
 ---
 

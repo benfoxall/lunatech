@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
+import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
 import { TractiveClient } from '../lib/TractiveClient.ts';
 import { homePage } from './views/home.ts';
+import { loginPage } from './views/login.ts';
 import { trackerListPage } from './views/trackerList.ts';
 import { dashboardPage } from './views/dashboard.ts';
 
@@ -8,48 +10,48 @@ const app = new Hono();
 
 // Configuration
 const DEFAULT_HISTORY_DAYS = 120;
-const MAX_AUTH_HEADER_LENGTH = 4096; // Prevent DoS through large headers
+const COOKIE_NAME = 'tractive_session';
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
-// SECURITY NOTE: This proof-of-concept passes credentials via query parameters for simplicity.
-// For production use, implement proper session management:
-// - Use encrypted session cookies
-// - Store sessions in Cloudflare Workers KV or Durable Objects
-// - Implement token-based authentication
-// - Never pass credentials in URLs (they appear in logs and browser history)
+// Session data structure
+interface SessionData {
+  user_id: string;
+  access_token: string;
+  expires_at: number;
+}
 
-// Helper to parse Basic Auth header
-function parseBasicAuth(authHeader: string | null): { email: string; password: string } | null {
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return null;
-  }
-  
-  // Prevent DoS through large headers
-  if (authHeader.length > MAX_AUTH_HEADER_LENGTH) {
+// Helper to get session from cookie
+function getSession(c: any): SessionData | null {
+  const sessionCookie = getCookie(c, COOKIE_NAME);
+  if (!sessionCookie) {
     return null;
   }
   
   try {
-    const base64 = authHeader.slice(6);
-    const decoded = atob(base64);
+    const session = JSON.parse(sessionCookie) as SessionData;
     
-    // Split only on the first colon to handle passwords with colons
-    const colonIndex = decoded.indexOf(':');
-    if (colonIndex === -1) {
+    // Check if token is expired
+    if (session.expires_at && session.expires_at < Date.now() / 1000) {
       return null;
     }
     
-    const email = decoded.slice(0, colonIndex);
-    const password = decoded.slice(colonIndex + 1);
-    
-    if (!email || !password) {
-      return null;
-    }
-    
-    return { email, password };
+    return session;
   } catch (error) {
-    // Invalid base64 or other parsing error
     return null;
   }
+}
+
+// Helper to create authenticated client from session
+function getAuthenticatedClient(session: SessionData): TractiveClient {
+  const client = new TractiveClient();
+  // Set the auth response directly on the client
+  (client as any).authResponse = {
+    user_id: session.user_id,
+    access_token: session.access_token,
+    expires_at: session.expires_at,
+    client_id: '', // Not needed for authenticated requests
+  };
+  return client;
 }
 
 // Homepage route
@@ -57,70 +59,100 @@ app.get('/', (c) => {
   return c.html(homePage());
 });
 
-// Auth endpoint - requests HTTP Basic Auth and generates token
-app.get('/auth', async (c) => {
-  const authHeader = c.req.header('Authorization');
-  const credentials = parseBasicAuth(authHeader);
-  
-  if (!credentials) {
-    // Request HTTP Basic Auth
-    return c.text('Authentication required', 401, {
-      'WWW-Authenticate': 'Basic realm="Tractive Login"'
-    });
+// Login page - GET shows form
+app.get('/auth', (c) => {
+  // If already authenticated, redirect to trackers
+  const session = getSession(c);
+  if (session) {
+    return c.redirect('/trackers');
   }
   
-  try {
-    const client = new TractiveClient();
-    await client.login(credentials.email, credentials.password);
-    
-    // Get trackers for the user
-    const trackers = await client.getTrackers();
-    
-    // Store credentials in a cookie (in production, use encrypted session storage)
-    // For now, we'll redirect to the tracker list with auth info
-    return c.html(trackerListPage(trackers, credentials.email, credentials.password));
-  } catch (error) {
-    console.error('Authentication failed:', error);
-    return c.text('Authentication failed. Please check your credentials.', 401, {
-      'WWW-Authenticate': 'Basic realm="Tractive Login"'
-    });
-  }
+  return c.html(loginPage());
 });
 
-// Tracker list endpoint
-app.get('/trackers', async (c) => {
-  const email = c.req.query('email');
-  const password = c.req.query('password');
+// Login handler - POST processes credentials
+app.post('/auth', async (c) => {
+  const body = await c.req.parseBody();
+  const email = body.email as string;
+  const password = body.password as string;
   
   if (!email || !password) {
-    return c.redirect('/auth');
+    return c.html(loginPage('Please provide both email and password'));
   }
   
   try {
     const client = new TractiveClient();
     await client.login(email, password);
+    
+    // Get the auth response from the client
+    const authResponse = (client as any).authResponse;
+    
+    if (!authResponse) {
+      throw new Error('Authentication failed');
+    }
+    
+    // Create session data
+    const sessionData: SessionData = {
+      user_id: authResponse.user_id,
+      access_token: authResponse.access_token,
+      expires_at: authResponse.expires_at,
+    };
+    
+    // Store session in cookie
+    setCookie(c, COOKIE_NAME, JSON.stringify(sessionData), {
+      maxAge: COOKIE_MAX_AGE,
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      path: '/',
+    });
+    
+    // Redirect to trackers page
+    return c.redirect('/trackers');
+  } catch (error) {
+    console.error('Authentication failed:', error);
+    return c.html(loginPage('Authentication failed. Please check your credentials.'));
+  }
+});
+
+// Logout endpoint
+app.get('/logout', (c) => {
+  deleteCookie(c, COOKIE_NAME);
+  return c.redirect('/');
+});
+
+// Tracker list endpoint
+app.get('/trackers', async (c) => {
+  const session = getSession(c);
+  
+  if (!session) {
+    return c.redirect('/auth');
+  }
+  
+  try {
+    const client = getAuthenticatedClient(session);
     const trackers = await client.getTrackers();
     
-    return c.html(trackerListPage(trackers, email, password));
+    return c.html(trackerListPage(trackers));
   } catch (error) {
     console.error('Failed to fetch trackers:', error);
-    return c.text('Failed to fetch trackers', 500);
+    // Token might be expired, redirect to login
+    deleteCookie(c, COOKIE_NAME);
+    return c.redirect('/auth');
   }
 });
 
 // Dashboard for specific tracker
 app.get('/tracker/:trackerId', async (c) => {
   const trackerId = c.req.param('trackerId');
-  const email = c.req.query('email');
-  const password = c.req.query('password');
+  const session = getSession(c);
   
-  if (!email || !password) {
+  if (!session) {
     return c.redirect('/auth');
   }
   
   try {
-    const client = new TractiveClient();
-    await client.login(email, password);
+    const client = getAuthenticatedClient(session);
     
     // Fetch positions for the configured history period
     const to = new Date();
@@ -129,26 +161,26 @@ app.get('/tracker/:trackerId', async (c) => {
     
     const positions = await client.getPositions(trackerId, from, to);
     
-    return c.html(dashboardPage(trackerId, positions, email, password));
+    return c.html(dashboardPage(trackerId, positions));
   } catch (error) {
     console.error('Failed to fetch tracker data:', error);
-    return c.text('Failed to fetch tracker data', 500);
+    // Token might be expired, redirect to login
+    deleteCookie(c, COOKIE_NAME);
+    return c.redirect('/auth');
   }
 });
 
 // API endpoint to get positions data (for AJAX requests)
 app.get('/api/tracker/:trackerId/positions', async (c) => {
   const trackerId = c.req.param('trackerId');
-  const email = c.req.query('email');
-  const password = c.req.query('password');
+  const session = getSession(c);
   
-  if (!email || !password) {
+  if (!session) {
     return c.json({ error: 'Authentication required' }, 401);
   }
   
   try {
-    const client = new TractiveClient();
-    await client.login(email, password);
+    const client = getAuthenticatedClient(session);
     
     const to = new Date();
     const from = new Date(to);

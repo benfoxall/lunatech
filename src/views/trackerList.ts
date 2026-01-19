@@ -4,7 +4,7 @@ interface Tracker {
   _version: string;
 }
 
-export function trackerListPage(trackers: Tracker[], email: string, password: string): string {
+export function trackerListPage(trackers: Tracker[]): string {
   const trackerCards = trackers.map(tracker => `
     <div class="tracker-card">
       <div class="tracker-icon">📍</div>
@@ -13,7 +13,7 @@ export function trackerListPage(trackers: Tracker[], email: string, password: st
         <p class="tracker-type">Type: ${tracker._type}</p>
         <p class="tracker-version">Version: ${tracker._version}</p>
       </div>
-      <a href="/tracker/${tracker._id}?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}" class="view-button">
+      <a href="/tracker/${tracker._id}" class="view-button">
         View Dashboard →
       </a>
     </div>
@@ -154,6 +154,18 @@ export function trackerListPage(trackers: Tracker[], email: string, password: st
       color: #666;
       font-size: 1.1em;
     }
+    
+    .logout-link {
+      display: inline-block;
+      margin-left: 15px;
+      color: #d32f2f;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    
+    .logout-link:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -176,6 +188,7 @@ export function trackerListPage(trackers: Tracker[], email: string, password: st
     
     <div style="text-align: center;">
       <a href="/" class="back-link">← Back to Home</a>
+      <a href="/logout" class="logout-link">Logout</a>
     </div>
   </div>
 </body>

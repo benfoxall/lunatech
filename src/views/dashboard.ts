@@ -1,5 +1,5 @@
 // Dashboard page that displays the tracker visualization
-export function dashboardPage(trackerId: string, positionsData: any, email: string, password: string): string {
+export function dashboardPage(trackerId: string, positionsData: any): string {
   // Convert positions data to JSON string for embedding in the page
   // Escape to prevent XSS via script injection
   const dataJson = JSON.stringify(positionsData)
@@ -109,7 +109,7 @@ export function dashboardPage(trackerId: string, positionsData: any, email: stri
   <div class="header">
     <h1>🐾 Tracker Dashboard</h1>
     <div class="nav-links">
-      <a href="/trackers?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}" class="back-link">← All Trackers</a>
+      <a href="/trackers" class="back-link">← All Trackers</a>
       <a href="/" class="back-link">Home</a>
     </div>
   </div>
