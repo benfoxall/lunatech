@@ -12,7 +12,7 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tracker ${trackerId} - Lunatech</title>
+  <title>track • ${trackerId}</title>
   <style>
     * {
       margin: 0;
@@ -21,60 +21,50 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
     }
     
     body {
-      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Roboto Mono', monospace;
-      line-height: 1.6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', sans-serif;
+      line-height: 1.7;
       color: #e4e4e7;
-      background: #09090b;
-      padding: 20px;
+      background: #0a0a0a;
+      padding: 80px 40px 40px;
+      font-size: 15px;
+      letter-spacing: -0.01em;
     }
     
     .header {
       max-width: 1200px;
-      margin: 0 auto 20px;
-      background: #18181b;
-      padding: 20px 24px;
-      border: 1px solid #27272a;
+      margin-bottom: 40px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
     }
     
     h1 {
-      font-size: 1.2em;
+      font-size: 1.5em;
       color: #fafafa;
       margin: 0;
-      font-weight: 500;
+      font-weight: 300;
+      letter-spacing: -0.02em;
     }
     
     .nav-links {
       display: flex;
-      gap: 12px;
-      font-size: 0.85em;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      gap: 24px;
+      font-size: 0.9em;
     }
     
     .back-link {
-      color: #71717a;
+      color: #52525b;
       text-decoration: none;
-      padding: 6px 12px;
-      border: 1px solid #27272a;
-      transition: all 0.2s;
+      transition: color 0.2s;
     }
     
     .back-link:hover {
-      background: #27272a;
-      border-color: #3f3f46;
-      color: #a1a1aa;
+      color: #71717a;
     }
     
     #dashboard-container {
       max-width: 1200px;
       margin: 0 auto;
-      background: #18181b;
-      padding: 24px;
-      border: 1px solid #27272a;
     }
     
     svg {
@@ -89,27 +79,20 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
     }
     
     .loading {
-      text-align: center;
-      padding: 60px;
-      font-size: 1em;
-      color: #71717a;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 60px 0;
+      font-size: 0.95em;
+      color: #52525b;
     }
     
     .error {
-      text-align: center;
-      padding: 40px;
-      color: #fca5a5;
-      background: #18181b;
-      border: 1px solid #dc2626;
-      margin: 20px 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 40px 0;
+      color: #f87171;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>tracker: ${trackerId}</h1>
+    <h1>${trackerId}</h1>
     <div class="nav-links">
       <a href="/trackers" class="back-link">← trackers</a>
       <a href="/" class="back-link">home</a>
@@ -117,7 +100,7 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
   </div>
   
   <div id="dashboard-container">
-    <div class="loading">loading data...</div>
+    <div class="loading">loading...</div>
     <svg id="heatmap"></svg>
     <svg id="timeline"></svg>
     <svg id="timeOfDay"></svg>

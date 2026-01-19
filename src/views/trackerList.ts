@@ -5,18 +5,11 @@ interface Tracker {
 }
 
 export function trackerListPage(trackers: Tracker[]): string {
-  const trackerCards = trackers.map(tracker => `
-    <div class="tracker-card">
-      <div class="tracker-info">
-        <div class="tracker-id">${tracker._id}</div>
-        <div class="tracker-meta">
-          <span>${tracker._type}</span>
-          <span class="separator">•</span>
-          <span>v${tracker._version}</span>
-        </div>
-      </div>
-      <a href="/tracker/${tracker._id}" class="view-button">
-        view →
+  const trackerItems = trackers.map(tracker => `
+    <div class="tracker-item">
+      <a href="/tracker/${tracker._id}" class="tracker-link">
+        <span class="tracker-id">${tracker._id}</span>
+        <span class="tracker-meta">${tracker._type} • v${tracker._version}</span>
       </a>
     </div>
   `).join('');
@@ -26,7 +19,7 @@ export function trackerListPage(trackers: Tracker[]): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trackers - Lunatech</title>
+  <title>track • trackers</title>
   <style>
     * {
       margin: 0;
@@ -35,148 +28,114 @@ export function trackerListPage(trackers: Tracker[]): string {
     }
     
     body {
-      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Roboto Mono', monospace;
-      line-height: 1.6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', sans-serif;
+      line-height: 1.7;
       color: #e4e4e7;
-      background: #09090b;
+      background: #0a0a0a;
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: 80px 40px;
+      font-size: 15px;
+      letter-spacing: -0.01em;
     }
     
     .header {
-      max-width: 1200px;
-      margin: 0 auto 40px;
+      max-width: 900px;
+      margin-bottom: 60px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 24px;
-      border-bottom: 1px solid #27272a;
     }
     
     h1 {
-      font-size: 1.5em;
+      font-size: 2em;
       color: #fafafa;
-      font-weight: 500;
-    }
-    
-    .subtitle {
-      color: #71717a;
-      font-size: 0.9em;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 300;
+      letter-spacing: -0.02em;
     }
     
     .container {
-      max-width: 1200px;
-      margin: 0 auto;
+      max-width: 900px;
     }
     
-    .tracker-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-      margin-bottom: 40px;
+    .tracker-list {
+      margin-bottom: 60px;
     }
     
-    .tracker-card {
-      background: #18181b;
-      border: 1px solid #27272a;
-      padding: 20px;
-      transition: border-color 0.2s;
+    .tracker-item {
+      margin-bottom: 2px;
+    }
+    
+    .tracker-link {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: baseline;
+      padding: 16px 0;
+      color: #fafafa;
+      text-decoration: none;
+      transition: color 0.2s;
+      border-bottom: 1px solid #18181b;
     }
     
-    .tracker-card:hover {
-      border-color: #3f3f46;
+    .tracker-link:hover {
+      color: #71717a;
     }
     
-    .tracker-info {
-      flex-grow: 1;
+    .tracker-link:hover .tracker-id {
+      color: #71717a;
     }
     
     .tracker-id {
-      color: #fafafa;
-      margin-bottom: 6px;
-      font-size: 0.95em;
+      font-size: 1em;
+      transition: color 0.2s;
     }
     
     .tracker-meta {
-      color: #71717a;
-      font-size: 0.85em;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    
-    .separator {
-      margin: 0 8px;
-    }
-    
-    .view-button {
-      display: inline-block;
-      padding: 8px 16px;
-      background: #27272a;
-      color: #fafafa;
-      text-decoration: none;
-      border: 1px solid #3f3f46;
-      font-size: 0.85em;
-      transition: all 0.2s;
-    }
-    
-    .view-button:hover {
-      background: #3f3f46;
-      border-color: #52525b;
+      color: #52525b;
+      font-size: 0.9em;
     }
     
     .nav-links {
       display: flex;
-      gap: 16px;
-      font-size: 0.85em;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      gap: 24px;
+      font-size: 0.9em;
     }
     
     .back-link {
-      color: #71717a;
+      color: #52525b;
       text-decoration: none;
+      transition: color 0.2s;
     }
     
     .back-link:hover {
-      color: #a1a1aa;
+      color: #71717a;
     }
     
     .logout-link {
-      color: #71717a;
+      color: #52525b;
       text-decoration: none;
+      transition: color 0.2s;
     }
     
     .logout-link:hover {
-      color: #fca5a5;
+      color: #f87171;
     }
     
     .empty-state {
-      background: #18181b;
-      border: 1px solid #27272a;
-      padding: 48px 32px;
-      text-align: center;
+      padding: 60px 0;
+      color: #52525b;
     }
     
     .empty-state h2 {
-      color: #fafafa;
-      margin-bottom: 12px;
-    }
-    
-    .empty-state p {
+      font-size: 1em;
+      font-weight: 300;
+      margin-bottom: 8px;
       color: #71717a;
-      font-size: 0.95em;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <div>
-      <h1>trackers</h1>
-      <p class="subtitle">${trackers.length} device${trackers.length !== 1 ? 's' : ''} connected</p>
-    </div>
+    <h1>trackers</h1>
     <div class="nav-links">
       <a href="/" class="back-link">← home</a>
       <a href="/logout" class="logout-link">logout</a>
@@ -185,13 +144,13 @@ export function trackerListPage(trackers: Tracker[]): string {
   
   <div class="container">
     ${trackers.length > 0 ? `
-      <div class="tracker-grid">
-        ${trackerCards}
+      <div class="tracker-list">
+        ${trackerItems}
       </div>
     ` : `
       <div class="empty-state">
-        <h2>no trackers found</h2>
-        <p>No devices associated with this account</p>
+        <h2>no trackers</h2>
+        <p>no devices connected</p>
       </div>
     `}
   </div>

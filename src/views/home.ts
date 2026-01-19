@@ -4,7 +4,7 @@ export function homePage(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lunatech - Tractive Data Visualization</title>
+  <title>track</title>
   <style>
     * {
       margin: 0;
@@ -13,136 +13,75 @@ export function homePage(): string {
     }
     
     body {
-      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Roboto Mono', monospace;
-      line-height: 1.6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', sans-serif;
+      line-height: 1.7;
       color: #e4e4e7;
-      background: #09090b;
+      background: #0a0a0a;
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: 80px 40px;
+      font-size: 15px;
+      letter-spacing: -0.01em;
     }
     
     .container {
-      max-width: 900px;
-      margin: 0 auto;
-      background: #18181b;
-      border: 1px solid #27272a;
-      padding: 48px;
+      max-width: 720px;
     }
     
     h1 {
-      font-size: 2.5em;
+      font-size: 3.5em;
       color: #fafafa;
-      margin-bottom: 8px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-    
-    .subtitle {
-      font-size: 1em;
-      color: #71717a;
-      margin-bottom: 48px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin-bottom: 24px;
+      font-weight: 300;
+      letter-spacing: -0.04em;
     }
     
     .description {
-      margin-bottom: 48px;
-      font-size: 0.95em;
+      margin-bottom: 60px;
+      font-size: 1.05em;
       color: #a1a1aa;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      line-height: 1.8;
     }
-    
-    .description h2 {
-      color: #fafafa;
-      margin-top: 32px;
-      margin-bottom: 16px;
-      font-size: 1.1em;
-      font-weight: 500;
-      font-family: 'SF Mono', monospace;
-    }
-    
-    .description ul {
-      margin-left: 0;
-      margin-bottom: 24px;
-      list-style: none;
-    }
-    
-    .description li {
-      margin-bottom: 12px;
-      padding-left: 20px;
-      position: relative;
-    }
-    
-    .description li:before {
-      content: '▸';
-      position: absolute;
-      left: 0;
-      color: #52525b;
-    }
-    
-    .description strong {
-      color: #e4e4e7;
-      font-weight: 500;
     }
     
     .cta-button {
       display: inline-block;
-      padding: 12px 24px;
-      background: #27272a;
+      padding: 14px 0;
       color: #fafafa;
       text-decoration: none;
-      border: 1px solid #3f3f46;
-      font-size: 0.95em;
-      font-weight: 500;
-      transition: all 0.2s;
-      font-family: 'SF Mono', monospace;
+      font-size: 1em;
+      font-weight: 400;
+      transition: color 0.2s;
+      border-bottom: 1px solid #3f3f46;
     }
     
     .cta-button:hover {
-      background: #3f3f46;
-      border-color: #52525b;
+      color: #71717a;
+      border-bottom-color: #71717a;
     }
     
     .footer {
-      margin-top: 48px;
-      padding-top: 24px;
-      border-top: 1px solid #27272a;
+      margin-top: 120px;
       color: #52525b;
-      font-size: 0.85em;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.9em;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>lunatech</h1>
-    <p class="subtitle">Tractive data visualization tool</p>
+    <h1>track</h1>
     
     <div class="description">
       <p>
-        A web application for visualizing Tractive pet tracker location data through 
-        interactive heatmaps, timelines, and activity charts.
-      </p>
-      
-      <h2>features</h2>
-      <ul>
-        <li><strong>Movement Patterns:</strong> Spatial heatmap analysis</li>
-        <li><strong>Activity Tracking:</strong> Daily and hourly activity patterns</li>
-        <li><strong>Multiple Trackers:</strong> Multi-device data aggregation</li>
-        <li><strong>Historical Data:</strong> 120-day location history</li>
-      </ul>
-      
-      <h2>how it works</h2>
-      <p>
-        Authenticate with Tractive API credentials. Session tokens are stored in secure 
-        HTTP-only cookies. Location data is fetched on-demand and visualized client-side 
-        using D3.js.
+        Visualize Tractive pet tracker location data through interactive heatmaps, 
+        timelines, and activity charts.
       </p>
     </div>
     
-    <a href="/auth" class="cta-button">→ authenticate</a>
+    <a href="/auth" class="cta-button">authenticate →</a>
     
     <div class="footer">
-      <p>Uses Tractive API • Session-based authentication • No credential storage</p>
+      <p>track.benjaminbenben.com • session-based auth • no credential storage</p>
     </div>
   </div>
 </body>
