@@ -99,10 +99,12 @@ app.post('/auth', async (c) => {
     };
     
     // Store session in cookie
+    // Note: secure flag should be true in production (HTTPS), but can be omitted for local dev
+    const isProduction = c.req.url.startsWith('https://');
     setCookie(c, COOKIE_NAME, JSON.stringify(sessionData), {
       maxAge: COOKIE_MAX_AGE,
       httpOnly: true,
-      secure: true,
+      secure: isProduction,
       sameSite: 'Lax',
       path: '/',
     });
