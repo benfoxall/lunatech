@@ -13,10 +13,10 @@ export function loginPage(error?: string): string {
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Roboto Mono', monospace;
       line-height: 1.6;
-      color: #333;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #e4e4e7;
+      background: #09090b;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -25,140 +25,137 @@ export function loginPage(error?: string): string {
     }
     
     .container {
-      max-width: 450px;
+      max-width: 420px;
       width: 100%;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      padding: 50px 40px;
-    }
-    
-    .icon {
-      text-align: center;
-      font-size: 4em;
-      margin-bottom: 20px;
+      background: #18181b;
+      border: 1px solid #27272a;
+      padding: 40px;
     }
     
     h1 {
-      font-size: 2.5em;
-      color: #667eea;
-      margin-bottom: 10px;
-      text-align: center;
+      font-size: 1.5em;
+      color: #fafafa;
+      margin-bottom: 8px;
+      font-weight: 500;
     }
     
     .subtitle {
-      text-align: center;
-      color: #666;
-      margin-bottom: 40px;
-      font-size: 1.1em;
+      color: #71717a;
+      margin-bottom: 32px;
+      font-size: 0.9em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     .form-group {
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
     
     label {
       display: block;
-      margin-bottom: 8px;
-      color: #555;
-      font-weight: 600;
-      font-size: 0.95em;
+      margin-bottom: 6px;
+      color: #a1a1aa;
+      font-weight: 400;
+      font-size: 0.85em;
+      text-transform: lowercase;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     input[type="email"],
     input[type="password"] {
       width: 100%;
-      padding: 12px 15px;
-      border: 2px solid #e0e0e0;
-      border-radius: 10px;
-      font-size: 1em;
-      transition: border-color 0.3s;
+      padding: 10px 12px;
+      border: 1px solid #27272a;
+      background: #09090b;
+      color: #e4e4e7;
+      font-size: 0.95em;
+      transition: border-color 0.2s;
+      font-family: 'SF Mono', monospace;
     }
     
     input[type="email"]:focus,
     input[type="password"]:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #3f3f46;
     }
     
     .error {
-      background: #ffebee;
-      color: #d32f2f;
-      padding: 12px 15px;
-      border-radius: 10px;
+      background: #18181b;
+      border: 1px solid #dc2626;
+      color: #fca5a5;
+      padding: 10px 12px;
       margin-bottom: 20px;
-      font-size: 0.95em;
+      font-size: 0.85em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     button {
       width: 100%;
-      padding: 15px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 1.1em;
-      font-weight: 600;
+      padding: 12px;
+      background: #27272a;
+      color: #fafafa;
+      border: 1px solid #3f3f46;
+      font-size: 0.95em;
+      font-weight: 500;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transition: all 0.2s;
+      font-family: 'SF Mono', monospace;
     }
     
     button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      background: #3f3f46;
+      border-color: #52525b;
     }
     
     button:active {
-      transform: translateY(0);
+      background: #27272a;
     }
     
     .back-link {
       display: block;
       text-align: center;
-      margin-top: 25px;
-      color: #667eea;
+      margin-top: 24px;
+      color: #71717a;
       text-decoration: none;
-      font-weight: 600;
+      font-size: 0.85em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     .back-link:hover {
-      text-decoration: underline;
+      color: #a1a1aa;
     }
     
     .info {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #eee;
-      color: #999;
-      font-size: 0.85em;
-      text-align: center;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #27272a;
+      color: #52525b;
+      font-size: 0.8em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon">🐾</div>
-    <h1>Login</h1>
-    <p class="subtitle">Sign in with your Tractive account</p>
+    <h1>authenticate</h1>
+    <p class="subtitle">Tractive API credentials</p>
     
     ${error ? `<div class="error">${error}</div>` : ''}
     
     <form method="POST" action="/auth">
       <div class="form-group">
-        <label for="email">Email</label>
+        <label for="email">email</label>
         <input 
           type="email" 
           id="email" 
           name="email" 
           required 
-          placeholder="your@email.com"
+          placeholder="user@example.com"
           autocomplete="email"
         >
       </div>
       
       <div class="form-group">
-        <label for="password">Password</label>
+        <label for="password">password</label>
         <input 
           type="password" 
           id="password" 
@@ -169,14 +166,13 @@ export function loginPage(error?: string): string {
         >
       </div>
       
-      <button type="submit">Sign In</button>
+      <button type="submit">→ sign in</button>
     </form>
     
-    <a href="/" class="back-link">← Back to Home</a>
+    <a href="/" class="back-link">← back</a>
     
     <div class="info">
-      <p>Your credentials are used only to authenticate with Tractive's API.</p>
-      <p>We don't store your password.</p>
+      <p>Session-based authentication • HTTP-only cookies • No credential storage</p>
     </div>
   </div>
 </body>

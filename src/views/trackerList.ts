@@ -7,14 +7,16 @@ interface Tracker {
 export function trackerListPage(trackers: Tracker[]): string {
   const trackerCards = trackers.map(tracker => `
     <div class="tracker-card">
-      <div class="tracker-icon">📍</div>
       <div class="tracker-info">
-        <h3>Tracker ${tracker._id}</h3>
-        <p class="tracker-type">Type: ${tracker._type}</p>
-        <p class="tracker-version">Version: ${tracker._version}</p>
+        <div class="tracker-id">${tracker._id}</div>
+        <div class="tracker-meta">
+          <span>${tracker._type}</span>
+          <span class="separator">•</span>
+          <span>v${tracker._version}</span>
+        </div>
       </div>
       <a href="/tracker/${tracker._id}" class="view-button">
-        View Dashboard →
+        view →
       </a>
     </div>
   `).join('');
@@ -24,7 +26,7 @@ export function trackerListPage(trackers: Tracker[]): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Trackers - Lunatech</title>
+  <title>Trackers - Lunatech</title>
   <style>
     * {
       margin: 0;
@@ -33,29 +35,34 @@ export function trackerListPage(trackers: Tracker[]): string {
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Roboto Mono', monospace;
       line-height: 1.6;
-      color: #333;
-      background: #f5f5f5;
+      color: #e4e4e7;
+      background: #09090b;
       min-height: 100vh;
-      padding: 20px;
+      padding: 40px 20px;
     }
     
     .header {
       max-width: 1200px;
       margin: 0 auto 40px;
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #27272a;
     }
     
     h1 {
-      font-size: 2.5em;
-      color: #667eea;
-      margin-bottom: 10px;
+      font-size: 1.5em;
+      color: #fafafa;
+      font-weight: 500;
     }
     
     .subtitle {
-      color: #666;
-      font-size: 1.1em;
+      color: #71717a;
+      font-size: 0.9em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     .container {
@@ -65,113 +72,115 @@ export function trackerListPage(trackers: Tracker[]): string {
     
     .tracker-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
       margin-bottom: 40px;
     }
     
     .tracker-card {
-      background: white;
-      border-radius: 15px;
-      padding: 30px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s, box-shadow 0.2s;
+      background: #18181b;
+      border: 1px solid #27272a;
+      padding: 20px;
+      transition: border-color 0.2s;
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      text-align: center;
     }
     
     .tracker-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
-    }
-    
-    .tracker-icon {
-      font-size: 3em;
-      margin-bottom: 15px;
+      border-color: #3f3f46;
     }
     
     .tracker-info {
       flex-grow: 1;
-      margin-bottom: 20px;
     }
     
-    .tracker-info h3 {
-      color: #333;
-      margin-bottom: 10px;
-      font-size: 1.3em;
+    .tracker-id {
+      color: #fafafa;
+      margin-bottom: 6px;
+      font-size: 0.95em;
     }
     
-    .tracker-type,
-    .tracker-version {
-      color: #666;
-      font-size: 0.9em;
-      margin: 5px 0;
+    .tracker-meta {
+      color: #71717a;
+      font-size: 0.85em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .separator {
+      margin: 0 8px;
     }
     
     .view-button {
       display: inline-block;
-      padding: 12px 30px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      padding: 8px 16px;
+      background: #27272a;
+      color: #fafafa;
       text-decoration: none;
-      border-radius: 25px;
-      font-weight: 600;
-      transition: transform 0.2s;
+      border: 1px solid #3f3f46;
+      font-size: 0.85em;
+      transition: all 0.2s;
     }
     
     .view-button:hover {
-      transform: scale(1.05);
+      background: #3f3f46;
+      border-color: #52525b;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      font-size: 0.85em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     .back-link {
-      display: inline-block;
-      margin-top: 20px;
-      color: #667eea;
+      color: #71717a;
       text-decoration: none;
-      font-weight: 600;
     }
     
     .back-link:hover {
-      text-decoration: underline;
-    }
-    
-    .empty-state {
-      background: white;
-      border-radius: 15px;
-      padding: 60px 30px;
-      text-align: center;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    
-    .empty-state h2 {
-      color: #667eea;
-      margin-bottom: 15px;
-    }
-    
-    .empty-state p {
-      color: #666;
-      font-size: 1.1em;
+      color: #a1a1aa;
     }
     
     .logout-link {
-      display: inline-block;
-      margin-left: 15px;
-      color: #d32f2f;
+      color: #71717a;
       text-decoration: none;
-      font-weight: 600;
     }
     
     .logout-link:hover {
-      text-decoration: underline;
+      color: #fca5a5;
+    }
+    
+    .empty-state {
+      background: #18181b;
+      border: 1px solid #27272a;
+      padding: 48px 32px;
+      text-align: center;
+    }
+    
+    .empty-state h2 {
+      color: #fafafa;
+      margin-bottom: 12px;
+    }
+    
+    .empty-state p {
+      color: #71717a;
+      font-size: 0.95em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>🐾 Your Pet Trackers</h1>
-    <p class="subtitle">Select a tracker to view movement data and statistics</p>
+    <div>
+      <h1>trackers</h1>
+      <p class="subtitle">${trackers.length} device${trackers.length !== 1 ? 's' : ''} connected</p>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="back-link">← home</a>
+      <a href="/logout" class="logout-link">logout</a>
+    </div>
   </div>
   
   <div class="container">
@@ -181,15 +190,10 @@ export function trackerListPage(trackers: Tracker[]): string {
       </div>
     ` : `
       <div class="empty-state">
-        <h2>No Trackers Found</h2>
-        <p>It looks like you don't have any trackers associated with your account.</p>
+        <h2>no trackers found</h2>
+        <p>No devices associated with this account</p>
       </div>
     `}
-    
-    <div style="text-align: center;">
-      <a href="/" class="back-link">← Back to Home</a>
-      <a href="/logout" class="logout-link">Logout</a>
-    </div>
   </div>
 </body>
 </html>`;

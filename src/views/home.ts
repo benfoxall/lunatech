@@ -4,7 +4,7 @@ export function homePage(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lunatech - Tractive Pet Tracker Visualization</title>
+  <title>Lunatech - Tractive Data Visualization</title>
   <style>
     * {
       margin: 0;
@@ -13,127 +13,136 @@ export function homePage(): string {
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Roboto Mono', monospace;
       line-height: 1.6;
-      color: #333;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #e4e4e7;
+      background: #09090b;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      padding: 40px 20px;
     }
     
     .container {
-      max-width: 800px;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      padding: 60px;
-      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+      background: #18181b;
+      border: 1px solid #27272a;
+      padding: 48px;
     }
     
     h1 {
-      font-size: 3em;
-      color: #667eea;
-      margin-bottom: 20px;
-      font-weight: 700;
+      font-size: 2.5em;
+      color: #fafafa;
+      margin-bottom: 8px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
     }
     
     .subtitle {
-      font-size: 1.3em;
-      color: #666;
-      margin-bottom: 40px;
+      font-size: 1em;
+      color: #71717a;
+      margin-bottom: 48px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     .description {
-      text-align: left;
-      margin-bottom: 40px;
-      font-size: 1.1em;
-      color: #555;
+      margin-bottom: 48px;
+      font-size: 0.95em;
+      color: #a1a1aa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     .description h2 {
-      color: #667eea;
-      margin-top: 30px;
-      margin-bottom: 15px;
-      font-size: 1.5em;
+      color: #fafafa;
+      margin-top: 32px;
+      margin-bottom: 16px;
+      font-size: 1.1em;
+      font-weight: 500;
+      font-family: 'SF Mono', monospace;
     }
     
     .description ul {
-      margin-left: 20px;
-      margin-bottom: 20px;
+      margin-left: 0;
+      margin-bottom: 24px;
+      list-style: none;
     }
     
     .description li {
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      padding-left: 20px;
+      position: relative;
+    }
+    
+    .description li:before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: #52525b;
+    }
+    
+    .description strong {
+      color: #e4e4e7;
+      font-weight: 500;
     }
     
     .cta-button {
       display: inline-block;
-      padding: 15px 40px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      padding: 12px 24px;
+      background: #27272a;
+      color: #fafafa;
       text-decoration: none;
-      border-radius: 50px;
-      font-size: 1.2em;
-      font-weight: 600;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      border: 1px solid #3f3f46;
+      font-size: 0.95em;
+      font-weight: 500;
+      transition: all 0.2s;
+      font-family: 'SF Mono', monospace;
     }
     
     .cta-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-    }
-    
-    .icon {
-      font-size: 4em;
-      margin-bottom: 20px;
+      background: #3f3f46;
+      border-color: #52525b;
     }
     
     .footer {
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 1px solid #eee;
-      color: #999;
-      font-size: 0.9em;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #27272a;
+      color: #52525b;
+      font-size: 0.85em;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon">🐾</div>
-    <h1>Lunatech</h1>
-    <p class="subtitle">Visualize Your Pet's Adventures</p>
+    <h1>lunatech</h1>
+    <p class="subtitle">Tractive data visualization tool</p>
     
     <div class="description">
       <p>
-        Lunatech is a web application that connects to your Tractive pet tracker 
-        and transforms location data into beautiful, interactive visualizations.
+        A web application for visualizing Tractive pet tracker location data through 
+        interactive heatmaps, timelines, and activity charts.
       </p>
       
-      <h2>What You Can Do</h2>
+      <h2>features</h2>
       <ul>
-        <li><strong>View Movement Patterns:</strong> See where your pet spends most of their time with heat maps</li>
-        <li><strong>Track Activity Over Time:</strong> Analyze daily and hourly activity patterns</li>
-        <li><strong>Multiple Trackers:</strong> Manage and view data for all your pets in one place</li>
-        <li><strong>Historical Data:</strong> Access up to 120 days of location history</li>
+        <li><strong>Movement Patterns:</strong> Spatial heatmap analysis</li>
+        <li><strong>Activity Tracking:</strong> Daily and hourly activity patterns</li>
+        <li><strong>Multiple Trackers:</strong> Multi-device data aggregation</li>
+        <li><strong>Historical Data:</strong> 120-day location history</li>
       </ul>
       
-      <h2>How It Works</h2>
+      <h2>how it works</h2>
       <p>
-        Simply log in with your Tractive credentials. We'll securely fetch your pet's 
-        location data and present it through interactive charts and maps. Your credentials 
-        are only used to authenticate with Tractive's API and are never stored.
+        Authenticate with Tractive API credentials. Session tokens are stored in secure 
+        HTTP-only cookies. Location data is fetched on-demand and visualized client-side 
+        using D3.js.
       </p>
     </div>
     
-    <a href="/auth" class="cta-button">Get Started</a>
+    <a href="/auth" class="cta-button">→ authenticate</a>
     
     <div class="footer">
-      <p>This app uses the Tractive API to access your pet tracker data.</p>
-      <p>Your login information is transmitted securely and not stored.</p>
+      <p>Uses Tractive API • Session-based authentication • No credential storage</p>
     </div>
   </div>
 </body>
