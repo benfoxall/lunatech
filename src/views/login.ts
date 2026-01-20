@@ -4,7 +4,7 @@ export function loginPage(error?: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>track • authenticate</title>
+  <title>track • login</title>
   <style>
     * {
       margin: 0;
@@ -18,7 +18,7 @@ export function loginPage(error?: string): string {
       color: #e4e4e7;
       background: #0a0a0a;
       min-height: 100vh;
-      padding: 80px 40px;
+      padding: 40px;
       font-size: 15px;
       letter-spacing: -0.01em;
     }
@@ -106,19 +106,13 @@ export function loginPage(error?: string): string {
     .back-link:hover {
       color: #71717a;
     }
-    
-    .info {
-      margin-top: 120px;
-      color: #52525b;
-      font-size: 0.9em;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>authenticate</h1>
     
-    ${error ? `<div class="error">${error}</div>` : ''}
+    ${error ? `<div class="error">${error}</div>` : ""}
     
     <form method="POST" action="/auth">
       <div class="form-group">
@@ -147,10 +141,6 @@ export function loginPage(error?: string): string {
     </form>
     
     <a href="/" class="back-link">← back</a>
-    
-    <div class="info">
-      <p>track.benjaminbenben.com</p>
-    </div>
   </div>
 </body>
 </html>`;

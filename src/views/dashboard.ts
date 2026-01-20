@@ -3,10 +3,10 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
   // Convert positions data to JSON string for embedding in the page
   // Escape to prevent XSS via script injection
   const dataJson = JSON.stringify(positionsData)
-    .replace(/</g, '\\u003c')
-    .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026');
-  
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,7 +25,7 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
       line-height: 1.7;
       color: #e4e4e7;
       background: #0a0a0a;
-      padding: 80px 40px 40px;
+      padding: 40px;
       font-size: 15px;
       letter-spacing: -0.01em;
     }

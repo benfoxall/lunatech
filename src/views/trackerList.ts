@@ -5,14 +5,18 @@ interface Tracker {
 }
 
 export function trackerListPage(trackers: Tracker[]): string {
-  const trackerItems = trackers.map(tracker => `
+  const trackerItems = trackers
+    .map(
+      (tracker) => `
     <div class="tracker-item">
       <a href="/tracker/${tracker._id}" class="tracker-link">
         <span class="tracker-id">${tracker._id}</span>
         <span class="tracker-meta">${tracker._type} • v${tracker._version}</span>
       </a>
     </div>
-  `).join('');
+  `,
+    )
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -33,7 +37,7 @@ export function trackerListPage(trackers: Tracker[]): string {
       color: #e4e4e7;
       background: #0a0a0a;
       min-height: 100vh;
-      padding: 80px 40px;
+      padding: 40px;
       font-size: 15px;
       letter-spacing: -0.01em;
     }
@@ -143,16 +147,20 @@ export function trackerListPage(trackers: Tracker[]): string {
   </div>
   
   <div class="container">
-    ${trackers.length > 0 ? `
+    ${
+      trackers.length > 0
+        ? `
       <div class="tracker-list">
         ${trackerItems}
       </div>
-    ` : `
+    `
+        : `
       <div class="empty-state">
         <h2>no trackers</h2>
         <p>no devices connected</p>
       </div>
-    `}
+    `
+    }
   </div>
 </body>
 </html>`;
