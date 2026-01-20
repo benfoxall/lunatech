@@ -1,11 +1,14 @@
 // Dashboard page that displays the tracker visualization
 export function dashboardPage(trackerId: string, positionsData: any): string {
-  // Convert positions data to JSON string for embedding in the page
-  // Escape to prevent XSS via script injection
-  const dataJson = JSON.stringify(positionsData)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
+  // If positionsData is null, we'll fetch it via API
+  const shouldFetchData = positionsData === null;
+
+  const dataJson = shouldFetchData
+    ? "null"
+    : JSON.stringify(positionsData)
+        .replace(/</g, "\\u003c")
+        .replace(/>/g, "\\u003e")
+        .replace(/&/g, "\\u0026");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -18,6 +21,22 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+    }
+    
+    a {
+      display: inline-block;
+      padding: 14px 0;
+      color: #fff;
+      text-decoration: none;
+      font-size: 1em;
+      font-weight: 400;
+      transition: opacity 0.2s, border-bottom-color 0.2s;
+      border-bottom: 1px solid #3f3f46;
+    }
+    
+    a:hover {
+      opacity: 0.6;
+      border-bottom-color: #71717a;
     }
     
     body {
@@ -46,6 +65,13 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
       letter-spacing: -0.02em;
     }
     
+    .loading {
+      margin-left: 16px;
+      font-size: 0.85em;
+      color: #52525b;
+      font-weight: 300;
+    }
+    
     .nav-links {
       display: flex;
       gap: 24px;
@@ -53,13 +79,8 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
     }
     
     .back-link {
-      color: #52525b;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    
-    .back-link:hover {
-      color: #71717a;
+      border: none;
+      padding: 0;
     }
     
     #dashboard-container {
@@ -78,12 +99,6 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
       stroke: none;
     }
     
-    .loading {
-      padding: 60px 0;
-      font-size: 0.95em;
-      color: #52525b;
-    }
-    
     .error {
       padding: 40px 0;
       color: #f87171;
@@ -92,7 +107,10 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
 </head>
 <body>
   <div class="header">
-    <h1>${trackerId}</h1>
+    <div style="display: flex; align-items: baseline;">
+      <h1>${trackerId}</h1>
+      <div class="loading"></div>
+    </div>
     <div class="nav-links">
       <a href="/trackers" class="back-link">← trackers</a>
       <a href="/" class="back-link">home</a>
@@ -100,7 +118,6 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
   </div>
   
   <div id="dashboard-container">
-    <div class="loading">loading...</div>
     <svg id="heatmap"></svg>
     <svg id="timeline"></svg>
     <svg id="timeOfDay"></svg>
@@ -111,9 +128,138 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
     import { hexbin } from "https://cdn.skypack.dev/d3-hexbin";
     import proj from "https://cdn.skypack.dev/proj4";
 
+    const DB_NAME = 'track';
+    const DB_VERSION = 1;
+    const TRACKER_ID = '${trackerId}';
+    const TOTAL_DAYS = 120;
+
     let data;
     let heatmap, timeline, timeOfDay;
     let filteredData;
+
+    // IndexedDB utilities
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          
+          // Positions store - composite index on [trackerId, timestamp]
+          if (!db.objectStoreNames.contains('positions')) {
+            const posStore = db.createObjectStore('positions', { autoIncrement: true });
+            posStore.createIndex('trackerTime', ['trackerId', 'timestamp'], { unique: false });
+            posStore.createIndex('trackerId', 'trackerId', { unique: false });
+          }
+          
+          // Metadata store - tracks fetched ranges
+          if (!db.objectStoreNames.contains('metadata')) {
+            db.createObjectStore('metadata', { keyPath: 'trackerId' });
+          }
+        };
+      });
+    }
+
+    async function getPositions(db, trackerId, fromTime, toTime) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('positions', 'readonly');
+        const store = tx.objectStore('positions');
+        const index = store.index('trackerTime');
+        
+        const range = IDBKeyRange.bound(
+          [trackerId, fromTime],
+          [trackerId, toTime]
+        );
+        
+        const request = index.getAll(range);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function storePositions(db, trackerId, positions) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('positions', 'readwrite');
+        const store = tx.objectStore('positions');
+        
+        for (const pos of positions) {
+          store.add({
+            trackerId,
+            timestamp: pos.time,
+            data: pos
+          });
+        }
+        
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function getMetadata(db, trackerId) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('metadata', 'readonly');
+        const store = tx.objectStore('metadata');
+        const request = store.get(trackerId);
+        
+        request.onsuccess = () => resolve(request.result || { trackerId, ranges: [] });
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function updateMetadata(db, trackerId, newRange) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('metadata', 'readwrite');
+        const store = tx.objectStore('metadata');
+        const request = store.get(trackerId);
+        
+        request.onsuccess = () => {
+          const metadata = request.result || { trackerId, ranges: [] };
+          metadata.ranges.push(newRange);
+          
+          // Merge overlapping ranges
+          metadata.ranges.sort((a, b) => a.from - b.from);
+          const merged = [];
+          for (const range of metadata.ranges) {
+            if (merged.length === 0 || merged[merged.length - 1].to < range.from) {
+              merged.push(range);
+            } else {
+              merged[merged.length - 1].to = Math.max(merged[merged.length - 1].to, range.to);
+            }
+          }
+          metadata.ranges = merged;
+          
+          store.put(metadata);
+        };
+        
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function findMissingRanges(fetchedRanges, targetFrom, targetTo) {
+      const missing = [];
+      let current = targetFrom;
+      
+      // Sort fetched ranges
+      const sorted = fetchedRanges.sort((a, b) => a.from - b.from);
+      
+      for (const range of sorted) {
+        if (current < range.from) {
+          missing.push({ from: current, to: Math.min(range.from, targetTo) });
+        }
+        current = Math.max(current, range.to);
+        if (current >= targetTo) break;
+      }
+      
+      if (current < targetTo) {
+        missing.push({ from: current, to: targetTo });
+      }
+      
+      return missing;
+    }
 
     // Localise function (from lib/localise.ts)
     function localise(obj, origin) {
@@ -132,52 +278,157 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
 
     async function main() {
       try {
-        // Get embedded data
-        const rawData = ${dataJson};
+        const db = await openDB();
+        const now = new Date();
+        const targetFrom = Math.floor(new Date(now.getTime() - TOTAL_DAYS * 24 * 60 * 60 * 1000).getTime() / 1000);
+        const targetTo = Math.floor(now.getTime() / 1000);
         
-        // Extract positions array (it's a tuple with one array)
-        const locationsList = rawData[0];
+        // Load cached data immediately
+        document.querySelector('.loading').textContent = 'loading cached data...';
+        const cachedRecords = await getPositions(db, TRACKER_ID, targetFrom, targetTo);
+        let allData = cachedRecords.map(r => r.data);
         
-        if (!locationsList || locationsList.length === 0) {
+        // Get metadata to find missing ranges
+        const metadata = await getMetadata(db, TRACKER_ID);
+        const missingRanges = findMissingRanges(metadata.ranges, targetFrom, targetTo);
+        
+        console.log(\`Cached: \${allData.length} positions, Missing ranges: \${missingRanges.length}\`);
+        
+        // Initialize UI with cached data if available
+        if (allData.length > 0) {
+          const origin = allData[0];
+          window.dataOrigin = origin;
+          
+          const mapped = allData.map(position => localise(position, origin));
+          data = mapped.map(d => ({
+            ...d,
+            location: d.position,
+            duration: 60
+          })).filter((d) => d.pos_uncertainty < 50);
+          
+          window.data = data;
+          filteredData = data;
+          
+          heatmap = new Heatmap();
+          timeline = new Timeline();
+          timeOfDay = new TimeOfDayChart(data);
+          
+          let resizeTimer;
+          window.addEventListener("resize", () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+              heatmap.resize();
+              timeline.resize();
+              timeOfDay.resize();
+            }, 200);
+          });
+        }
+        
+        // Fetch missing ranges in chunks
+        if (missingRanges.length > 0) {
+          const CHUNK_SIZE = 30 * 24 * 60 * 60; // 30 days in seconds
+          const chunks = [];
+          
+          // Break large missing ranges into 30-day chunks
+          for (const range of missingRanges) {
+            let current = range.from;
+            while (current < range.to) {
+              const chunkEnd = Math.min(current + CHUNK_SIZE, range.to);
+              chunks.push({ from: current, to: chunkEnd });
+              current = chunkEnd;
+            }
+          }
+          
+          console.log(\`Fetching \${chunks.length} chunks...\`);
+          
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            const fromDate = new Date(chunk.from * 1000);
+            const toDate = new Date(chunk.to * 1000);
+            
+            document.querySelector('.loading').textContent = 
+              \`\${Math.round(((i + 1) / chunks.length) * 100)}%\`;
+            
+            const response = await fetch(
+              \`/api/tracker/${trackerId}/positions?from=\${fromDate.toISOString()}&to=\${toDate.toISOString()}\`
+            );
+            
+            if (!response.ok) {
+              console.error('Failed to fetch chunk:', chunk);
+              continue;
+            }
+            
+            const rawData = await response.json();
+            const locationsList = rawData[0] || [];
+            
+            if (locationsList.length > 0) {
+              // Store in IndexedDB
+              await storePositions(db, TRACKER_ID, locationsList);
+              await updateMetadata(db, TRACKER_ID, chunk);
+              
+              // Add to current data
+              const origin = window.dataOrigin || locationsList[0];
+              if (!window.dataOrigin) window.dataOrigin = origin;
+              
+              const mapped = locationsList.map(position => localise(position, origin));
+              const transformed = mapped.map(d => ({
+                ...d,
+                location: d.position,
+                duration: 60
+              })).filter((d) => d.pos_uncertainty < 50);
+              
+              allData = allData.concat(locationsList);
+              
+              // Update UI
+              if (!data) {
+                // First data chunk - initialize
+                data = transformed;
+                window.data = data;
+                filteredData = data;
+                
+                heatmap = new Heatmap();
+                timeline = new Timeline();
+                timeOfDay = new TimeOfDayChart(data);
+                
+                let resizeTimer;
+                window.addEventListener("resize", () => {
+                  clearTimeout(resizeTimer);
+                  resizeTimer = setTimeout(() => {
+                    heatmap.resize();
+                    timeline.resize();
+                    timeOfDay.resize();
+                  }, 200);
+                });
+              } else {
+                // Update existing charts
+                const allMapped = allData.map(position => localise(position, window.dataOrigin));
+                data = allMapped.map(d => ({
+                  ...d,
+                  location: d.position,
+                  duration: 60
+                })).filter((d) => d.pos_uncertainty < 50);
+                
+                window.data = data;
+                filteredData = data;
+                
+                heatmap.updateData(data);
+                timeline.resize();
+                timeOfDay.chartData = data;
+                timeOfDay.resize();
+              }
+            }
+          }
+        }
+        
+        document.querySelector('.loading').style.display = 'none';
+        
+        if (!data || data.length === 0) {
           throw new Error('No location data available');
         }
-
-        // Use first location as origin and map all positions
-        const origin = locationsList[0];
-        const mapped = locationsList.map(position => localise(position, origin));
-        
-        // Transform to match expected format (location instead of position)
-        data = mapped.map(d => ({
-          ...d,
-          location: d.position,
-          duration: 60 // Default duration in seconds
-        }));
-
-        data = data.filter((d) => d.pos_uncertainty < 50);
-        
-        // Hide loading message
-        document.querySelector('.loading').style.display = 'none';
-
-        window.data = data;
-        filteredData = data;
-
-        heatmap = new Heatmap();
-        timeline = new Timeline();
-        timeOfDay = new TimeOfDayChart(data);
-
-        let resizeTimer;
-        window.addEventListener("resize", () => {
-          clearTimeout(resizeTimer);
-          resizeTimer = setTimeout(() => {
-            heatmap.resize();
-            timeline.resize();
-            timeOfDay.resize();
-          }, 200);
-        });
       } catch (error) {
         console.error('Error loading data:', error);
         document.querySelector('.loading').innerHTML = 
-          '<div class="error"><h2>Error Loading Data</h2><p>' + error.message + '</p></div>';
+          '<div class="error">' + error.message + '</div>';
       }
     }
 
@@ -363,6 +614,27 @@ function getChartClasses(): string {
           .attr("r", 1.5)
           .attr("fill", "black")
           .attr("fill-opacity", 0.3);
+      }
+      
+      updateData(newData) {
+        // Recalculate scales and color with new data
+        this.xScaleFull.domain(d3.extent(newData, (d) => d.location[0])).nice();
+        this.yScaleFull.domain(d3.extent(newData, (d) => d.location[1])).nice();
+        
+        const hexbinFnFull = hexbin()
+          .x((d) => this.xScaleFull(d.location[0]))
+          .y((d) => this.yScaleFull(d.location[1]))
+          .radius(10);
+
+        const binsFull = hexbinFnFull(newData);
+        binsFull.forEach((bin) => {
+          bin.totalDuration = d3.sum(bin, (d) => d.duration);
+        });
+
+        this.colorScaleFull.domain([1, d3.max(binsFull, (d) => d.totalDuration)]);
+        
+        // Redraw with updated scales
+        this.resize();
       }
     }
 

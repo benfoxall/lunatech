@@ -4,3 +4,4 @@ tracker/*.json
 trackers
 .wrangler
 dist
+.env
