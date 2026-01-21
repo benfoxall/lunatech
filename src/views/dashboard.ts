@@ -1140,6 +1140,12 @@ function getActivityCalendarClass(): string {
         this.cellSize = 12;
         this.cellGap = 2;
         
+        // Configuration constants
+        // Distance threshold (in meters) for determining if the animal is "at home" or "outside"
+        this.HOME_THRESHOLD_METERS = 20;
+        // Default duration (in seconds) when a data point doesn't have a duration value
+        this.DEFAULT_DURATION_SECONDS = 60;
+        
         this.svgElement = d3.select("#activity-calendar-svg");
         this.pathSvg = d3.select("#path-plot-svg");
         
@@ -1355,22 +1361,21 @@ function getActivityCalendarClass(): string {
           if (dist > maxRadius) maxRadius = dist;
         }
         
-        // Calculate time "outside" (when position changes significantly)
-        const homeThreshold = 20; // 20 meters from starting position = home
+        // Calculate time "outside" (when position is beyond home threshold)
         let timeOutside = 0;
         for (const point of dayData) {
           const dx = point.location[0] - home[0];
           const dy = point.location[1] - home[1];
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > homeThreshold) {
-            timeOutside += point.duration || 60;
+          if (dist > this.HOME_THRESHOLD_METERS) {
+            timeOutside += point.duration || this.DEFAULT_DURATION_SECONDS;
           }
         }
         
         return {
           distance: Math.round(totalDistance),
           radius: Math.round(maxRadius),
-          timeOutside: Math.round(timeOutside / 60), // minutes
+          timeOutside: Math.round(timeOutside / 60), // convert seconds to minutes
           points: dayData.length
         };
       }
