@@ -110,6 +110,13 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
       gap: 0;
       margin-bottom: 30px;
       border-bottom: 1px solid #27272a;
+      align-items: center;
+    }
+    
+    .tabs-left {
+      display: flex;
+      gap: 0;
+      flex: 1;
     }
     
     .tab {
@@ -141,9 +148,25 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
       display: block;
     }
     
+    .download-btn {
+      padding: 6px 12px;
+      color: #71717a;
+      font-size: 0.8em;
+      border: 1px solid #27272a;
+      background: none;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      margin-bottom: 8px;
+    }
+    
+    .download-btn:hover {
+      color: #a1a1aa;
+      border-color: #3f3f46;
+    }
+    
     /* Activity tab styles */
     .activity-calendar {
-      margin-bottom: 30px;
+      margin-bottom: 16px;
     }
     
     .calendar-tooltip {
@@ -166,86 +189,85 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
     }
     
     .stats-panel {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .stats-panel h3 {
-      color: #fafafa;
-      font-size: 1em;
-      font-weight: 400;
       margin-bottom: 16px;
     }
     
+    .stats-panel h3 {
+      color: #71717a;
+      font-size: 0.8em;
+      font-weight: 400;
+      margin-bottom: 8px;
+      font-family: monospace;
+    }
+    
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 16px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
     }
     
     .stat-item {
-      background: #0a0a0a;
-      border-radius: 6px;
-      padding: 14px;
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
     }
     
     .stat-label {
-      color: #71717a;
-      font-size: 0.8em;
-      margin-bottom: 4px;
+      color: #52525b;
+      font-size: 0.75em;
+      font-family: monospace;
     }
     
     .stat-value {
-      color: #fafafa;
-      font-size: 1.3em;
-      font-weight: 300;
+      color: #a1a1aa;
+      font-size: 0.85em;
+      font-family: monospace;
     }
     
     .path-plot {
-      margin-bottom: 30px;
+      margin-bottom: 16px;
     }
     
     .time-slider-container {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 30px;
+      margin-bottom: 16px;
     }
     
     .time-slider-container label {
       display: block;
-      color: #71717a;
-      font-size: 0.85em;
-      margin-bottom: 12px;
+      color: #52525b;
+      font-size: 0.75em;
+      margin-bottom: 8px;
+      font-family: monospace;
+    }
+    
+    .activity-timeline {
+      margin-bottom: 8px;
+      height: 30px;
     }
     
     .time-slider {
       width: 100%;
-      height: 6px;
+      height: 4px;
       -webkit-appearance: none;
       appearance: none;
       background: #27272a;
-      border-radius: 3px;
+      border-radius: 2px;
       outline: none;
     }
     
     .time-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
       background: #fafafa;
       border-radius: 50%;
       cursor: pointer;
     }
     
     .time-slider::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
       background: #fafafa;
       border-radius: 50%;
       cursor: pointer;
@@ -253,23 +275,27 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
     }
     
     .time-display {
-      color: #a1a1aa;
-      font-size: 0.9em;
-      margin-top: 8px;
+      color: #71717a;
+      font-size: 0.75em;
+      margin-top: 4px;
       text-align: center;
+      font-family: monospace;
     }
     
     .no-data-message {
-      color: #71717a;
+      color: #52525b;
       text-align: center;
-      padding: 40px 20px;
+      padding: 20px;
+      font-family: monospace;
+      font-size: 0.8em;
     }
     
     .select-day-message {
-      color: #52525b;
+      color: #3f3f46;
       text-align: center;
-      padding: 40px 20px;
-      font-size: 0.95em;
+      padding: 20px;
+      font-size: 0.8em;
+      font-family: monospace;
     }
   </style>
 </head>
@@ -287,8 +313,11 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
   
   <div id="dashboard-container">
     <div class="tabs">
-      <button class="tab active" data-tab="heatmap">Heatmap</button>
-      <button class="tab" data-tab="activity">Activity</button>
+      <div class="tabs-left">
+        <button class="tab active" data-tab="heatmap">Heatmap</button>
+        <button class="tab" data-tab="activity">Activity</button>
+      </div>
+      <button class="download-btn" id="download-csv">download csv</button>
     </div>
     
     <div id="heatmap-tab" class="tab-content active">
@@ -302,36 +331,36 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
         <svg id="activity-calendar-svg"></svg>
       </div>
       <div id="day-stats" class="stats-panel" style="display: none;">
-        <h3 id="stats-date">Select a day</h3>
+        <h3 id="stats-date">select a day</h3>
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-label">Distance Covered</div>
-            <div class="stat-value" id="stat-distance">-</div>
+            <span class="stat-label">dist:</span>
+            <span class="stat-value" id="stat-distance">-</span>
           </div>
           <div class="stat-item">
-            <div class="stat-label">Furthest From Home</div>
-            <div class="stat-value" id="stat-radius">-</div>
+            <span class="stat-label">max_r:</span>
+            <span class="stat-value" id="stat-radius">-</span>
           </div>
           <div class="stat-item">
-            <div class="stat-label">Time Outside</div>
-            <div class="stat-value" id="stat-outside">-</div>
+            <span class="stat-label">outside:</span>
+            <span class="stat-value" id="stat-outside">-</span>
           </div>
           <div class="stat-item">
-            <div class="stat-label">Data Points</div>
-            <div class="stat-value" id="stat-points">-</div>
+            <span class="stat-label">points:</span>
+            <span class="stat-value" id="stat-points">-</span>
           </div>
         </div>
+      </div>
+      <div id="time-slider-section" class="time-slider-container" style="display: none;">
+        <svg id="activity-timeline-svg" class="activity-timeline"></svg>
+        <input type="range" class="time-slider" id="time-slider" min="0" max="100" value="0">
+        <div class="time-display" id="time-display">00:00</div>
       </div>
       <div id="path-plot-container" class="path-plot" style="display: none;">
         <svg id="path-plot-svg"></svg>
       </div>
-      <div id="time-slider-section" class="time-slider-container" style="display: none;">
-        <label>Drag to see position at a specific time</label>
-        <input type="range" class="time-slider" id="time-slider" min="0" max="100" value="0">
-        <div class="time-display" id="time-display">00:00</div>
-      </div>
       <div id="select-day-prompt" class="select-day-message">
-        Click on a day in the calendar above to see activity details
+        click on a day to see activity details
       </div>
     </div>
   </div>
@@ -714,7 +743,45 @@ export function dashboardPage(trackerId: string, positionsData: any): string {
         if (tabName === 'activity' && window.data && !window.activityCalendar) {
           window.activityCalendar = new ActivityCalendar(window.data);
         }
+        
+        // Resize heatmap charts when switching back to heatmap tab
+        if (tabName === 'heatmap' && heatmap) {
+          setTimeout(() => {
+            heatmap.resize();
+            timeline.resize();
+            timeOfDay.resize();
+          }, 10);
+        }
       });
+    });
+    
+    // Download CSV functionality
+    document.getElementById('download-csv').addEventListener('click', () => {
+      if (!window.data || window.data.length === 0) {
+        alert('No data available to download');
+        return;
+      }
+      
+      // Create CSV content
+      const headers = ['timestamp', 'datetime', 'x', 'y', 'duration', 'pos_uncertainty'];
+      const rows = window.data.map(d => [
+        d.time,
+        new Date(d.time * 1000).toISOString(),
+        d.location[0],
+        d.location[1],
+        d.duration || '',
+        d.pos_uncertainty || ''
+      ]);
+      
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\\n');
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = TRACKER_ID + '_locations.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
     });
 
     ${getActivityCalendarClass()}
@@ -1383,10 +1450,10 @@ function getActivityCalendarClass(): string {
       showDayStats(d, dayData) {
         const stats = this.calculateDayStats(dayData);
         
-        document.getElementById('stats-date').textContent = d3.timeFormat("%A, %B %d, %Y")(d);
+        document.getElementById('stats-date').textContent = d3.timeFormat("%Y-%m-%d")(d);
         document.getElementById('stat-distance').textContent = stats.distance + 'm';
         document.getElementById('stat-radius').textContent = stats.radius + 'm';
-        document.getElementById('stat-outside').textContent = stats.timeOutside + ' min';
+        document.getElementById('stat-outside').textContent = stats.timeOutside + 'min';
         document.getElementById('stat-points').textContent = stats.points;
         
         document.getElementById('day-stats').style.display = 'block';
@@ -1397,10 +1464,10 @@ function getActivityCalendarClass(): string {
         const svg = this.pathSvg;
         svg.selectAll("*").remove();
         
-        const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+        const margin = { top: 10, right: 10, bottom: 10, left: 10 };
         const containerWidth = svg.node().getBoundingClientRect().width || 800;
         const width = containerWidth - margin.left - margin.right;
-        const height = width * 0.6;
+        const height = Math.min(width * 0.4, 300);
         
         svg.attr("width", containerWidth).attr("height", height + margin.top + margin.bottom);
         
@@ -1430,92 +1497,99 @@ function getActivityCalendarClass(): string {
         this.pathScales = { x, y };
         this.pathG = g;
         
-        // Time color scale (blue for morning, orange for afternoon, purple for night)
+        // Time color scale
         const timeColorScale = d3.scaleSequential(d3.interpolateRainbow)
           .domain([0, 24]);
         
-        // Draw smoothed path using curve
+        // Draw single smoothed path with gradient effect
+        // Use basis spline for very smooth curves
         const lineGenerator = d3.line()
           .x(d => x(d.location[0]))
           .y(d => y(d.location[1]))
-          .curve(d3.curveCatmullRom.alpha(0.5));
+          .curve(d3.curveBasis);
         
-        // Draw path segments colored by time
+        // Draw the full smoothed path first as a background
+        g.append("path")
+          .datum(sortedData)
+          .attr("fill", "none")
+          .attr("stroke", "#27272a")
+          .attr("stroke-width", 3)
+          .attr("d", lineGenerator);
+        
+        // Draw colored segments on top using the smoothed path
+        // Group points by hour for smoother color transitions
+        const hourGroups = d3.group(sortedData, d => new Date(d.time * 1000).getHours());
+        
+        // Create segments for each hour transition
         for (let i = 1; i < sortedData.length; i++) {
-          const segment = [sortedData[i-1], sortedData[i]];
-          const hour = new Date(sortedData[i].time * 1000).getHours();
+          const prevHour = new Date(sortedData[i-1].time * 1000).getHours();
+          const currHour = new Date(sortedData[i].time * 1000).getHours();
+          
+          // Get a window of points around this segment for smoother curve
+          const startIdx = Math.max(0, i - 2);
+          const endIdx = Math.min(sortedData.length, i + 2);
+          const windowData = sortedData.slice(startIdx, endIdx);
           
           g.append("path")
-            .datum(segment)
+            .datum(windowData)
             .attr("fill", "none")
-            .attr("stroke", timeColorScale(hour))
-            .attr("stroke-width", 2)
-            .attr("stroke-opacity", 0.7)
+            .attr("stroke", timeColorScale(currHour))
+            .attr("stroke-width", 1.5)
+            .attr("stroke-opacity", 0.8)
             .attr("d", lineGenerator);
         }
         
-        // Draw points
-        g.selectAll(".path-point")
-          .data(sortedData)
-          .join("circle")
-          .attr("class", "path-point")
-          .attr("cx", d => x(d.location[0]))
-          .attr("cy", d => y(d.location[1]))
-          .attr("r", 3)
-          .attr("fill", d => {
-            const hour = new Date(d.time * 1000).getHours();
-            return timeColorScale(hour);
-          })
-          .attr("stroke", "#0a0a0a")
-          .attr("stroke-width", 1);
-        
-        // Position marker for slider
+        // Position marker for slider (starts hidden)
         this.positionMarker = g.append("circle")
           .attr("class", "position-marker")
-          .attr("r", 8)
+          .attr("r", 6)
           .attr("fill", "#fafafa")
           .attr("stroke", "#0a0a0a")
           .attr("stroke-width", 2)
           .style("display", "none");
         
-        // Time legend
-        const legendG = g.append("g")
-          .attr("transform", \`translate(\${width - 150}, 10)\`);
-        
-        const legendGradient = svg.append("defs")
-          .append("linearGradient")
-          .attr("id", "time-gradient")
-          .attr("x1", "0%")
-          .attr("x2", "100%");
-        
-        for (let i = 0; i <= 24; i += 4) {
-          legendGradient.append("stop")
-            .attr("offset", \`\${(i/24)*100}%\`)
-            .attr("stop-color", timeColorScale(i));
-        }
-        
-        legendG.append("rect")
-          .attr("width", 120)
-          .attr("height", 10)
-          .attr("fill", "url(#time-gradient)")
-          .attr("rx", 2);
-        
-        legendG.append("text")
-          .attr("x", 0)
-          .attr("y", 22)
-          .attr("fill", "#71717a")
-          .attr("font-size", "10px")
-          .text("00:00");
-        
-        legendG.append("text")
-          .attr("x", 120)
-          .attr("y", 22)
-          .attr("text-anchor", "end")
-          .attr("fill", "#71717a")
-          .attr("font-size", "10px")
-          .text("24:00");
-        
         document.getElementById('path-plot-container').style.display = 'block';
+      }
+      
+      drawActivityTimeline(dayData) {
+        const svg = d3.select("#activity-timeline-svg");
+        svg.selectAll("*").remove();
+        
+        const containerWidth = svg.node().getBoundingClientRect().width || 800;
+        const height = 30;
+        const margin = { left: 0, right: 0 };
+        const width = containerWidth - margin.left - margin.right;
+        
+        svg.attr("width", containerWidth).attr("height", height);
+        
+        const g = svg.append("g")
+          .attr("transform", \`translate(\${margin.left}, 0)\`);
+        
+        // Group data by hour
+        const hourCounts = new Array(24).fill(0);
+        dayData.forEach(d => {
+          const hour = new Date(d.time * 1000).getHours();
+          hourCounts[hour]++;
+        });
+        
+        const maxCount = Math.max(...hourCounts);
+        const barWidth = width / 24;
+        
+        // Time color scale matching the path
+        const timeColorScale = d3.scaleSequential(d3.interpolateRainbow)
+          .domain([0, 24]);
+        
+        // Draw bars
+        hourCounts.forEach((count, hour) => {
+          const barHeight = maxCount > 0 ? (count / maxCount) * (height - 4) : 0;
+          g.append("rect")
+            .attr("x", hour * barWidth + 1)
+            .attr("y", height - barHeight - 2)
+            .attr("width", Math.max(0, barWidth - 2))
+            .attr("height", barHeight)
+            .attr("fill", timeColorScale(hour))
+            .attr("opacity", count > 0 ? 0.7 : 0.1);
+        });
       }
       
       setupSlider() {
@@ -1526,6 +1600,9 @@ function getActivityCalendarClass(): string {
       showSlider(dayData) {
         this.sliderData = [...dayData].sort((a, b) => a.time - b.time);
         document.getElementById('time-slider-section').style.display = 'block';
+        
+        // Draw activity timeline
+        this.drawActivityTimeline(dayData);
         
         // Reset slider
         const slider = document.getElementById('time-slider');
