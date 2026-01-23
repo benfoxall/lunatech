@@ -9,9 +9,10 @@ routes = [
 [observability]
 enabled = true
 
-# Serve built frontend assets from public directory using Workers Sites
-[site]
-bucket = "./public"
+# Serve built frontend assets from public directory using Workers Assets
+# This is compatible with versioned deployments (wrangler versions upload)
+[assets]
+directory = "public"
 
 # Enable preview deployments
 [env.preview]

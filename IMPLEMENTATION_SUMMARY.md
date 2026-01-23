@@ -89,7 +89,7 @@ DataStore (State Management)
 ```
 Cloudflare Workers (Edge Runtime)
   ├── Hono (Web Framework)
-  ├── Workers Sites (Static Assets)
+  ├── Workers Assets (Static Assets)
   └── Session Management (HTTP-only Cookies)
 ```
 
@@ -121,8 +121,8 @@ Dashboard (Orchestrator)
 
 ### Modified Files
 - `package.json` - Added dev dependencies and scripts
-- `wrangler.toml` - Added Workers Sites and preview config
-- `src/worker.ts` - Added static asset serving
+- `wrangler.toml` - Added Workers Assets and preview config
+- `src/worker.ts` - Configured for automatic asset serving
 - `.gitignore` - Exclude public/ build artifacts
 - `README.md` - Updated with new architecture info
 
@@ -157,17 +157,7 @@ npx wrangler deploy --env preview
 
 ## Known Limitations
 
-### Workers Sites in Local Dev
-**Issue**: Static assets don't serve correctly in `wrangler dev`
-
-**Root Cause**: Cloudflare Workers Sites KV binding doesn't populate correctly in local development mode with Wrangler 4.x
-
-**Workarounds**:
-1. Use `npm run dev:frontend` for UI development
-2. Deploy to preview environment for full-stack testing
-3. Production deployments work perfectly
-
-**Documented**: Fully explained in AGENTS.md with examples
+None. The migration from Workers Sites to Workers Assets resolved the versioned deployment compatibility issue.
 
 ## Security
 

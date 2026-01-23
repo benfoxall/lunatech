@@ -23,7 +23,7 @@ Lunatech is a modern web application that connects to your Tractive pet tracker 
 ### Backend
 - **Cloudflare Workers** for edge computing
 - **Hono** web framework for routing and middleware
-- **Workers Sites** for serving static assets globally
+- **Workers Assets** for serving static assets globally
 
 ## Quick Start
 
@@ -58,7 +58,7 @@ npm run dev
 
 Visit `http://localhost:8787`
 
-**Note**: Due to a Wrangler limitation, static assets don't serve correctly in local dev. Use the frontend dev server for UI work, or deploy to preview for testing.
+**Note**: Make sure to run `npm run build` first to generate the frontend assets.
 
 ### Building for Production
 

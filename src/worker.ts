@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { setCookie, getCookie, deleteCookie } from "hono/cookie";
-import { getAssetFromKV } from "@cloudflare/kv-asset-handler";
 import { TractiveClient } from "../lib/TractiveClient.ts";
 import { homePage } from "./views/home.ts";
 import { loginPage } from "./views/login.ts";
@@ -194,35 +193,7 @@ app.get("/api/tracker/:trackerId/positions", async (c) => {
   }
 });
 
-// Serve static assets
-app.get("/*", async (c) => {
-  try {
-    // Only serve asset files, not application routes
-    const url = new URL(c.req.url);
-    if (url.pathname.startsWith('/assets/') || url.pathname.match(/\.(js|css|png|jpg|svg|ico)$/)) {
-      // @ts-ignore - __STATIC_CONTENT is injected by Wrangler
-      const response = await getAssetFromKV(
-        {
-          request: c.req.raw,
-          waitUntil(promise) {
-            c.executionCtx?.waitUntil(promise);
-          },
-        },
-        {
-          // @ts-ignore - ASSET_MANIFEST is injected by Wrangler  
-          ASSET_MANIFEST: typeof __STATIC_CONTENT_MANIFEST !== 'undefined' ? __STATIC_CONTENT_MANIFEST : {},
-          // @ts-ignore - __STATIC_CONTENT is injected by Wrangler
-          ASSET_NAMESPACE: typeof __STATIC_CONTENT !== 'undefined' ? __STATIC_CONTENT : null,
-        }
-      );
-      return response;
-    }
-    // Fall through to 404 for non-asset routes
-    return c.text("Not Found", 404);
-  } catch (e) {
-    console.error('Asset error:', e);
-    return c.text("Not Found", 404);
-  }
-});
+// Note: Static assets from the [assets] directory are automatically served by Cloudflare Workers
+// No need for custom asset routing - files in public/ are served automatically
 
 export default app;

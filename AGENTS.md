@@ -119,23 +119,22 @@ This starts Vite on `http://localhost:5173` with:
 
 #### Option 2: Full-Stack Development
 
-**Known Limitation**: Static asset serving via Cloudflare Workers Sites is currently not working in local development mode. This is a known issue with Wrangler's local dev server and Workers Sites configuration.
-
-**Workaround for Testing**:
-
-Until the Workers Sites issue is resolved, use this approach:
-
-1. Deploy to Cloudflare preview environment:
+1. Build frontend first:
    ```bash
    npm run build
-   npx wrangler deploy --env preview
    ```
 
-2. Access the preview URL (will be shown after deployment)
+2. Start Cloudflare Workers dev server:
+   ```bash
+   npm run dev
+   ```
 
-3. Test with Tractive credentials there
+This runs the full application on `http://localhost:8787` with:
+- Backend API routes
+- Frontend assets served from `public/`
+- Tractive API integration
 
-**Alternative**: For rapid frontend development, use Option 1 (Vite dev server) which works perfectly for UI changes.
+**Note**: You need to rebuild frontend after changes (`npm run build`).
 
 ### Making Changes
 
@@ -317,7 +316,6 @@ The `wrangler.toml` file configures Cloudflare Workers:
 # Static asset serving
 [assets]
 directory = "public"
-binding = "ASSETS"
 
 # Preview environment
 [env.preview]
@@ -358,12 +356,11 @@ npm run build
 
 **Problem**: JavaScript/CSS files return 404 in `wrangler dev`.
 
-**Root Cause**: Cloudflare Workers Sites KV binding doesn't populate correctly in local development mode with Wrangler 4.x.
-
 **Solution**: 
-- For frontend development: Use `npm run dev:frontend` (Vite dev server)
-- For full-stack testing: Deploy to preview environment (`npx wrangler deploy --env preview`)
-- Production deployments work correctly with Workers Sites
+- Ensure you've run `npm run build` before starting `wrangler dev`
+- The `public/` directory must contain the built assets
+- For frontend development: Use `npm run dev:frontend` (Vite dev server with HMR)
+- For full-stack testing: Run `npm run build && npm run dev`
 
 #### 4. Assets not loading in production
 
