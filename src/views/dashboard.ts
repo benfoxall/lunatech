@@ -1538,7 +1538,7 @@ function getActivityCalendarClass(): string {
         // Sort by time
         const sortedData = [...dayData].sort((a, b) => a.time - b.time);
         
-        // Calculate natural aspect ratio based on data extent
+        // Calculate extent once for both aspect ratio and scales
         const xExtent = d3.extent(sortedData, d => d.location[0]);
         const yExtent = d3.extent(sortedData, d => d.location[1]);
         
@@ -1562,11 +1562,7 @@ function getActivityCalendarClass(): string {
         const g = svg.append("g")
           .attr("transform", \`translate(\${margin.left},\${margin.top})\`);
         
-        // Scales
-        const xExtent = d3.extent(sortedData, d => d.location[0]);
-        const yExtent = d3.extent(sortedData, d => d.location[1]);
-        
-        // Add padding
+        // Add padding to scales
         const xPad = (xExtent[1] - xExtent[0]) * 0.1 || 10;
         const yPad = (yExtent[1] - yExtent[0]) * 0.1 || 10;
         
@@ -1685,6 +1681,12 @@ function getActivityCalendarClass(): string {
       showSlider(dayData) {
         this.sliderData = [...dayData].sort((a, b) => a.time - b.time);
         
+        // Guard against empty data
+        if (this.sliderData.length === 0) {
+          document.getElementById('time-slider-section').style.display = 'none';
+          return;
+        }
+        
         // Get the date we're working with (from first data point)
         const firstTime = new Date(this.sliderData[0].time * 1000);
         const midnightStart = new Date(firstTime);
@@ -1713,15 +1715,25 @@ function getActivityCalendarClass(): string {
         // Calculate the time based on slider position (0-100 maps to midnight-midnight)
         const timeInSeconds = this.sliderStartTime + (value / 100) * (this.sliderEndTime - this.sliderStartTime);
         
-        // Find the closest data point to this time
+        // Binary search to find the closest data point to this time (more efficient for large datasets)
+        let left = 0;
+        let right = this.sliderData.length - 1;
         let closestPoint = this.sliderData[0];
         let minDiff = Math.abs(this.sliderData[0].time - timeInSeconds);
         
-        for (const point of this.sliderData) {
-          const diff = Math.abs(point.time - timeInSeconds);
+        while (left <= right) {
+          const mid = Math.floor((left + right) / 2);
+          const diff = Math.abs(this.sliderData[mid].time - timeInSeconds);
+          
           if (diff < minDiff) {
             minDiff = diff;
-            closestPoint = point;
+            closestPoint = this.sliderData[mid];
+          }
+          
+          if (this.sliderData[mid].time < timeInSeconds) {
+            left = mid + 1;
+          } else {
+            right = mid - 1;
           }
         }
         
