@@ -1202,6 +1202,7 @@ function getActivityCalendarClass(): string {
       constructor(data) {
         this.data = data;
         this.selectedDate = null;
+        this.hoveredDate = null;
         this.tooltip = document.getElementById('calendar-tooltip');
         this.margin = { top: 20, right: 20, bottom: 20, left: 40 };
         this.cellSize = 12;
@@ -1212,6 +1213,8 @@ function getActivityCalendarClass(): string {
         this.HOME_THRESHOLD_METERS = 20;
         // Default duration (in seconds) when a data point doesn't have a duration value
         this.DEFAULT_DURATION_SECONDS = 60;
+        // Maximum time difference (in seconds) for showing position marker on slider (30 minutes)
+        this.SLIDER_MARKER_THRESHOLD_SECONDS = 1800;
         
         this.svgElement = d3.select("#activity-calendar-svg");
         this.pathSvg = d3.select("#path-plot-svg");
@@ -1324,9 +1327,9 @@ function getActivityCalendarClass(): string {
             return this.activityByDay.get(dateStr) ? 'pointer' : 'default';
           })
           .on("click", (event, d) => this.onDayClick(d))
-          .on("mouseenter", (event, d) => this.showTooltip(event, d))
+          .on("mouseenter", (event, d) => this.onDayHover(d))
           .on("mousemove", (event) => this.moveTooltip(event))
-          .on("mouseleave", () => this.hideTooltip());
+          .on("mouseleave", () => this.onDayLeave());
         
         // Legend
         const legendG = g.append("g")
@@ -1355,6 +1358,59 @@ function getActivityCalendarClass(): string {
           .attr("font-size", "10px")
           .attr("dominant-baseline", "middle")
           .text("More");
+      }
+      
+      onDayHover(d) {
+        const dateStr = d.toISOString().split('T')[0];
+        const dayData = this.dataByDay.get(dateStr);
+        
+        if (!dayData || dayData.length === 0) {
+          this.tooltip.innerHTML = \`<strong>\${d3.timeFormat("%b %d, %Y")(d)}</strong><br>No activity\`;
+          this.tooltip.classList.add('visible');
+          return;
+        }
+        
+        // Show tooltip
+        const stats = this.calculateDayStats(dayData);
+        this.tooltip.innerHTML = \`
+          <strong>\${d3.timeFormat("%b %d, %Y")(d)}</strong><br>
+          \${dayData.length} data points<br>
+          \${stats.distance}m traveled
+        \`;
+        this.tooltip.classList.add('visible');
+        
+        // Load whole visualization on hover (if not already selected)
+        if (this.selectedDate !== dateStr) {
+          this.hoveredDate = dateStr;
+          this.showDayStats(d, dayData);
+          this.drawPathPlot(dayData);
+          this.showSlider(dayData);
+        }
+      }
+      
+      onDayLeave() {
+        this.hideTooltip();
+        
+        // If we were just hovering (not selected), clear the visualization
+        if (this.hoveredDate && this.selectedDate !== this.hoveredDate) {
+          this.hoveredDate = null;
+          // Hide the visualizations if no date is selected
+          if (!this.selectedDate) {
+            document.getElementById('day-stats').style.display = 'none';
+            document.getElementById('time-slider-section').style.display = 'none';
+            document.getElementById('path-plot-container').style.display = 'none';
+            document.getElementById('select-day-prompt').style.display = 'block';
+          } else {
+            // Restore the selected date's visualization
+            const selectedDayData = this.dataByDay.get(this.selectedDate);
+            if (selectedDayData) {
+              const selectedDate = new Date(this.selectedDate);
+              this.showDayStats(selectedDate, selectedDayData);
+              this.drawPathPlot(selectedDayData);
+              this.showSlider(selectedDayData);
+            }
+          }
+        }
       }
       
       showTooltip(event, d) {
@@ -1391,20 +1447,33 @@ function getActivityCalendarClass(): string {
         
         if (!dayData || dayData.length === 0) return;
         
-        this.selectedDate = dateStr;
-        this.selectedDayData = dayData.sort((a, b) => a.time - b.time);
+        // Toggle selection: if already selected, unselect it
+        if (this.selectedDate === dateStr) {
+          this.selectedDate = null;
+          this.selectedDayData = null;
+          
+          // Hide all visualizations
+          document.getElementById('day-stats').style.display = 'none';
+          document.getElementById('time-slider-section').style.display = 'none';
+          document.getElementById('path-plot-container').style.display = 'none';
+          document.getElementById('select-day-prompt').style.display = 'block';
+        } else {
+          // Select the new date
+          this.selectedDate = dateStr;
+          this.selectedDayData = dayData.sort((a, b) => a.time - b.time);
+          
+          // Show stats
+          this.showDayStats(d, dayData);
+          
+          // Show path plot
+          this.drawPathPlot(dayData);
+          
+          // Show slider
+          this.showSlider(dayData);
+        }
         
-        // Redraw to update selection
+        // Redraw to update selection border
         this.draw();
-        
-        // Show stats
-        this.showDayStats(d, dayData);
-        
-        // Show path plot
-        this.drawPathPlot(dayData);
-        
-        // Show slider
-        this.showSlider(dayData);
       }
       
       calculateDayStats(dayData) {
@@ -1467,21 +1536,35 @@ function getActivityCalendarClass(): string {
         const margin = { top: 10, right: 10, bottom: 10, left: 10 };
         const containerWidth = svg.node().getBoundingClientRect().width || 800;
         const width = containerWidth - margin.left - margin.right;
-        const height = Math.min(width * 0.4, 300);
+        
+        // Sort by time
+        const sortedData = [...dayData].sort((a, b) => a.time - b.time);
+        
+        // Calculate extent once for both aspect ratio and scales
+        const xExtent = d3.extent(sortedData, d => d.location[0]);
+        const yExtent = d3.extent(sortedData, d => d.location[1]);
+        
+        const dataWidth = xExtent[1] - xExtent[0];
+        const dataHeight = yExtent[1] - yExtent[0];
+        
+        // Use natural aspect ratio, but cap the height for very tall data
+        let height;
+        if (dataWidth > 0 && dataHeight > 0) {
+          const naturalAspectRatio = dataHeight / dataWidth;
+          height = Math.min(width * naturalAspectRatio, width * 0.75, 400);
+        } else {
+          height = 200; // Default if no width/height variance
+        }
+        
+        // Ensure minimum height
+        height = Math.max(height, 150);
         
         svg.attr("width", containerWidth).attr("height", height + margin.top + margin.bottom);
         
         const g = svg.append("g")
           .attr("transform", \`translate(\${margin.left},\${margin.top})\`);
         
-        // Sort by time
-        const sortedData = [...dayData].sort((a, b) => a.time - b.time);
-        
-        // Scales
-        const xExtent = d3.extent(sortedData, d => d.location[0]);
-        const yExtent = d3.extent(sortedData, d => d.location[1]);
-        
-        // Add padding
+        // Add padding to scales
         const xPad = (xExtent[1] - xExtent[0]) * 0.1 || 10;
         const yPad = (yExtent[1] - yExtent[0]) * 0.1 || 10;
         
@@ -1502,11 +1585,11 @@ function getActivityCalendarClass(): string {
           .domain([0, 24]);
         
         // Draw single smoothed path with gradient effect
-        // Use basis spline for very smooth curves
+        // Use catmull-rom spline for smooth curves that pass through points
         const lineGenerator = d3.line()
           .x(d => x(d.location[0]))
           .y(d => y(d.location[1]))
-          .curve(d3.curveBasis);
+          .curve(d3.curveCatmullRom.alpha(0.5));
         
         // Draw the full smoothed path first as a background
         g.append("path")
@@ -1599,12 +1682,30 @@ function getActivityCalendarClass(): string {
       
       showSlider(dayData) {
         this.sliderData = [...dayData].sort((a, b) => a.time - b.time);
+        
+        // Guard against empty data
+        if (this.sliderData.length === 0) {
+          document.getElementById('time-slider-section').style.display = 'none';
+          return;
+        }
+        
+        // Get the date we're working with (from first data point)
+        const firstTime = new Date(this.sliderData[0].time * 1000);
+        const midnightStart = new Date(firstTime);
+        midnightStart.setHours(0, 0, 0, 0);
+        const midnightEnd = new Date(midnightStart);
+        midnightEnd.setHours(23, 59, 59, 999);
+        
+        // Store midnight boundaries for slider calculation
+        this.sliderStartTime = midnightStart.getTime() / 1000;
+        this.sliderEndTime = midnightEnd.getTime() / 1000;
+        
         document.getElementById('time-slider-section').style.display = 'block';
         
         // Draw activity timeline
         this.drawActivityTimeline(dayData);
         
-        // Reset slider
+        // Reset slider to midnight
         const slider = document.getElementById('time-slider');
         slider.value = 0;
         this.onSliderChange(0);
@@ -1613,20 +1714,47 @@ function getActivityCalendarClass(): string {
       onSliderChange(value) {
         if (!this.sliderData || this.sliderData.length === 0) return;
         
-        const index = Math.floor((value / 100) * (this.sliderData.length - 1));
-        const point = this.sliderData[index];
+        // Calculate the time based on slider position (0-100 maps to midnight-midnight)
+        const timeInSeconds = this.sliderStartTime + (value / 100) * (this.sliderEndTime - this.sliderStartTime);
         
-        // Update time display
-        const time = new Date(point.time * 1000);
+        // Binary search to find the closest data point to this time (more efficient for large datasets)
+        let left = 0;
+        let right = this.sliderData.length - 1;
+        let closestPoint = this.sliderData[0];
+        let minDiff = Math.abs(this.sliderData[0].time - timeInSeconds);
+        
+        while (left <= right) {
+          const mid = Math.floor((left + right) / 2);
+          const diff = Math.abs(this.sliderData[mid].time - timeInSeconds);
+          
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestPoint = this.sliderData[mid];
+          }
+          
+          if (this.sliderData[mid].time < timeInSeconds) {
+            left = mid + 1;
+          } else {
+            right = mid - 1;
+          }
+        }
+        
+        // Update time display (show the slider time, not necessarily the data point time)
+        const displayTime = new Date(timeInSeconds * 1000);
         document.getElementById('time-display').textContent = 
-          d3.timeFormat("%H:%M:%S")(time);
+          d3.timeFormat("%H:%M:%S")(displayTime);
         
-        // Update position marker
+        // Update position marker with closest point
         if (this.positionMarker && this.pathScales) {
-          this.positionMarker
-            .style("display", "block")
-            .attr("cx", this.pathScales.x(point.location[0]))
-            .attr("cy", this.pathScales.y(point.location[1]));
+          // Only show marker if we have a reasonably close data point
+          if (minDiff < this.SLIDER_MARKER_THRESHOLD_SECONDS) {
+            this.positionMarker
+              .style("display", "block")
+              .attr("cx", this.pathScales.x(closestPoint.location[0]))
+              .attr("cy", this.pathScales.y(closestPoint.location[1]));
+          } else {
+            this.positionMarker.style("display", "none");
+          }
         }
       }
     }
