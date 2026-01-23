@@ -8,3 +8,12 @@ routes = [
 
 [observability]
 enabled = true
+
+# Serve built frontend assets from public directory
+[assets]
+directory = "public"
+binding = "ASSETS"
+
+# Enable preview deployments
+[env.preview]
+name = "lunatech-preview"

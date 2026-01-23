@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { setCookie, getCookie, deleteCookie } from "hono/cookie";
+import { serveStatic } from "hono/cloudflare-workers";
 import { TractiveClient } from "../lib/TractiveClient.ts";
 import { homePage } from "./views/home.ts";
 import { loginPage } from "./views/login.ts";
 import { trackerListPage } from "./views/trackerList.ts";
-import { dashboardPage } from "./views/dashboard.ts";
+import { dashboardPageReact } from "./views/dashboardReact.ts";
 
 const app = new Hono();
 
@@ -155,9 +156,8 @@ app.get("/tracker/:trackerId", async (c) => {
     return c.redirect("/auth");
   }
 
-  // Return the page immediately with loading state
-  // Data will be fetched via the API endpoint
-  return c.html(dashboardPage(trackerId, null));
+  // Return the React-based dashboard page
+  return c.html(dashboardPageReact(trackerId));
 });
 
 // API endpoint to get positions data (for AJAX requests)
@@ -193,5 +193,8 @@ app.get("/api/tracker/:trackerId/positions", async (c) => {
     return c.json({ error: "Failed to fetch positions" }, 500);
   }
 });
+
+// Serve static assets from the public directory
+app.get("/assets/*", serveStatic({ root: "./" }));
 
 export default app;
