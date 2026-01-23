@@ -3,12 +3,7 @@
  * Provides a single source of truth for position data across the application.
  */
 
-interface Position {
-  time: number;
-  location: [number, number];
-  pos_uncertainty: number;
-  duration: number;
-}
+import type { Position } from '../types';
 
 interface CachedData {
   trackerId: string;

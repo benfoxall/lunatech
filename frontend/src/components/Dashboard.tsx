@@ -48,7 +48,8 @@ export function Dashboard({ trackerId }: DashboardProps) {
     // Subscribe to data changes
     const unsubscribe = dataStore.subscribe((positions) => {
       setAllData(positions);
-      applyFilters(positions, dateSelection, hourSelection);
+      setFilteredData(positions);
+      setTimeOfDayData(positions);
     });
 
     return () => {
@@ -56,52 +57,58 @@ export function Dashboard({ trackerId }: DashboardProps) {
     };
   }, [trackerId]);
 
-  // Apply filters when selections change
-  const applyFilters = (
-    data: Position[], 
-    dateRange: [Date, Date] | null, 
-    hourRange: [number, number] | null
-  ) => {
-    let filtered = data;
-
-    // Filter by date range for time-of-day chart
-    if (dateRange) {
-      const [start, end] = dateRange;
-      filtered = data.filter(d => {
+  // Handle timeline brush
+  const handleTimelineBrush = (selection: [Date, Date] | null) => {
+    setDateSelection(selection);
+    
+    let filtered = allData;
+    
+    // Filter by date range
+    if (selection) {
+      const [start, end] = selection;
+      filtered = allData.filter(d => {
         const date = new Date(d.time * 1000);
         return date >= start && date <= end;
       });
     }
+    
     setTimeOfDayData(filtered);
-
-    // Further filter by hour range for heatmap
-    if (hourRange) {
-      const [startHour, endHour] = hourRange;
+    
+    // Apply hour filter if it exists
+    if (hourSelection) {
+      const [x0, x1] = hourSelection;
       filtered = filtered.filter(d => {
         const hour = new Date(d.time * 1000).getHours();
-        
-        // Find which hours are selected based on pixel positions
-        // This is simplified - in production would need exact mapping
-        const minHour = Math.floor(startHour * 24 / 800); // Approximate
-        const maxHour = Math.ceil(endHour * 24 / 800);
-        
-        return hour >= minHour && hour <= maxHour;
+        // Simplified hour filtering - approximate based on 24-hour scale
+        const hourPosition = (hour / 24) * 800;
+        return hourPosition >= x0 && hourPosition <= x1;
       });
     }
-
+    
     setFilteredData(filtered);
-  };
-
-  // Handle timeline brush
-  const handleTimelineBrush = (selection: [Date, Date] | null) => {
-    setDateSelection(selection);
-    applyFilters(allData, selection, hourSelection);
   };
 
   // Handle time-of-day brush
   const handleHourBrush = (selection: [number, number] | null) => {
     setHourSelection(selection);
-    applyFilters(allData, dateSelection, selection);
+    
+    let filtered = timeOfDayData;
+    
+    if (selection) {
+      const [x0, x1] = selection;
+      // The TimeOfDayChart uses a band scale with 24 hours
+      // Convert pixel positions to hours by determining which bars are within the selection
+      filtered = timeOfDayData.filter(d => {
+        const hour = new Date(d.time * 1000).getHours();
+        // Check if this data point's hour is within the brushed range
+        // This is a simplified check - in a production app, you'd want to use
+        // the actual scale from TimeOfDayChart
+        const hourPosition = (hour / 24) * 800; // Approximate pixel position
+        return hourPosition >= x0 && hourPosition <= x1;
+      });
+    }
+
+    setFilteredData(filtered);
   };
 
   if (loading) {

@@ -9,7 +9,7 @@ export function dashboardPageReact(trackerId: string): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>track • ${trackerId}</title>
-  <link rel="stylesheet" crossorigin href="/assets/main-BHNlELXy.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-BHNlELXy.css">
   <style>
     a {
       display: inline-block;
@@ -64,7 +64,7 @@ export function dashboardPageReact(trackerId: string): string {
     </div>
   </div>
   <div id="root" data-tracker-id="${trackerId}"></div>
-  <script type="module" crossorigin src="/assets/main-Ce6UlHY8.js"></script>
+  <script type="module" crossorigin src="/assets/index-K3txeeut.js"></script>
 </body>
 </html>`;
 }

@@ -42,7 +42,6 @@ export function TimeOfDayChart({ data, onBrush }: TimeOfDayChartProps) {
     const numBars = 24;
     let desiredGap = 1;
     const totalAvailableWidth = width;
-    let tempBarWidth = totalAvailableWidth / numBars;
 
     if (totalAvailableWidth - (numBars - 1) * desiredGap < 0) {
       desiredGap = 0;
