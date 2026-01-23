@@ -8,6 +8,7 @@
         "deploy": "npm run build && wrangler deploy"
     },
     "dependencies": {
+        "@cloudflare/kv-asset-handler": "^0.4.2",
         "d3": "^7.9.0",
         "d3-hexbin": "^0.2.2",
         "hono": "^4.11.4",

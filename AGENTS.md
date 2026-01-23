@@ -112,26 +112,30 @@ This starts Vite on `http://localhost:5173` with:
 - Fast refresh for React
 - Source maps for debugging
 
-**Note**: API calls will fail in this mode unless you proxy to a running backend.
+**Note**: API calls will need to be proxied or mocked in this mode. To use real API data, you need to:
+1. First authenticate by starting the full-stack server (Option 2) and logging in
+2. Copy the session cookie
+3. Use a browser extension or proxy to add the cookie when testing on `localhost:5173`
 
 #### Option 2: Full-Stack Development
 
-1. Build frontend first:
+**Known Limitation**: Static asset serving via Cloudflare Workers Sites is currently not working in local development mode. This is a known issue with Wrangler's local dev server and Workers Sites configuration.
+
+**Workaround for Testing**:
+
+Until the Workers Sites issue is resolved, use this approach:
+
+1. Deploy to Cloudflare preview environment:
    ```bash
    npm run build
+   npx wrangler deploy --env preview
    ```
 
-2. Start Cloudflare Workers dev server:
-   ```bash
-   npm run dev
-   ```
+2. Access the preview URL (will be shown after deployment)
 
-This runs the full application on `http://localhost:8787` with:
-- Backend API routes
-- Frontend assets served from `public/`
-- Tractive API integration
+3. Test with Tractive credentials there
 
-**Note**: You need to rebuild frontend after changes (`npm run build`).
+**Alternative**: For rapid frontend development, use Option 1 (Vite dev server) which works perfectly for UI changes.
 
 ### Making Changes
 
@@ -350,7 +354,18 @@ rm -rf node_modules/.vite
 npm run build
 ```
 
-#### 3. Assets not loading in production
+#### 3. Assets not loading in local development
+
+**Problem**: JavaScript/CSS files return 404 in `wrangler dev`.
+
+**Root Cause**: Cloudflare Workers Sites KV binding doesn't populate correctly in local development mode with Wrangler 4.x.
+
+**Solution**: 
+- For frontend development: Use `npm run dev:frontend` (Vite dev server)
+- For full-stack testing: Deploy to preview environment (`npx wrangler deploy --env preview`)
+- Production deployments work correctly with Workers Sites
+
+#### 4. Assets not loading in production
 
 **Problem**: JavaScript/CSS files return 404.
 
