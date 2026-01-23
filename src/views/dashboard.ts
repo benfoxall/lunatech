@@ -1213,6 +1213,8 @@ function getActivityCalendarClass(): string {
         this.HOME_THRESHOLD_METERS = 20;
         // Default duration (in seconds) when a data point doesn't have a duration value
         this.DEFAULT_DURATION_SECONDS = 60;
+        // Maximum time difference (in seconds) for showing position marker on slider (30 minutes)
+        this.SLIDER_MARKER_THRESHOLD_SECONDS = 1800;
         
         this.svgElement = d3.select("#activity-calendar-svg");
         this.pathSvg = d3.select("#path-plot-svg");
@@ -1547,11 +1549,11 @@ function getActivityCalendarClass(): string {
         
         // Use natural aspect ratio, but cap the height for very tall data
         let height;
-        if (dataWidth > 0) {
+        if (dataWidth > 0 && dataHeight > 0) {
           const naturalAspectRatio = dataHeight / dataWidth;
           height = Math.min(width * naturalAspectRatio, width * 0.75, 400);
         } else {
-          height = 200; // Default if no width variance
+          height = 200; // Default if no width/height variance
         }
         
         // Ensure minimum height
@@ -1744,8 +1746,8 @@ function getActivityCalendarClass(): string {
         
         // Update position marker with closest point
         if (this.positionMarker && this.pathScales) {
-          // Only show marker if we have a reasonably close data point (within 30 minutes)
-          if (minDiff < 1800) {
+          // Only show marker if we have a reasonably close data point
+          if (minDiff < this.SLIDER_MARKER_THRESHOLD_SECONDS) {
             this.positionMarker
               .style("display", "block")
               .attr("cx", this.pathScales.x(closestPoint.location[0]))
