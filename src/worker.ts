@@ -4,7 +4,7 @@ import { TractiveClient } from "../lib/TractiveClient.ts";
 import { homePage } from "./views/home.ts";
 import { loginPage } from "./views/login.ts";
 import { trackerListPage } from "./views/trackerList.ts";
-import { dashboardPage } from "./views/dashboard.ts";
+import { dashboardPageReact } from "./views/dashboardReact.ts";
 
 const app = new Hono();
 
@@ -155,9 +155,8 @@ app.get("/tracker/:trackerId", async (c) => {
     return c.redirect("/auth");
   }
 
-  // Return the page immediately with loading state
-  // Data will be fetched via the API endpoint
-  return c.html(dashboardPage(trackerId, null));
+  // Return the React-based dashboard page
+  return c.html(dashboardPageReact(trackerId));
 });
 
 // API endpoint to get positions data (for AJAX requests)
@@ -193,5 +192,8 @@ app.get("/api/tracker/:trackerId/positions", async (c) => {
     return c.json({ error: "Failed to fetch positions" }, 500);
   }
 });
+
+// Note: Static assets from the [assets] directory are automatically served by Cloudflare Workers
+// No need for custom asset routing - files in public/ are served automatically
 
 export default app;

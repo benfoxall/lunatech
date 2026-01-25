@@ -8,3 +8,16 @@ routes = [
 
 [observability]
 enabled = true
+
+# Build configuration - run before deployment
+[build]
+command = "npm run build"
+
+# Serve built frontend assets from public directory using Workers Assets
+# This is compatible with versioned deployments (wrangler versions upload)
+[assets]
+directory = "public"
+
+# Enable preview deployments
+[env.preview]
+name = "lunatech-preview"
