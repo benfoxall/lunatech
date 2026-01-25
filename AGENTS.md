@@ -171,13 +171,15 @@ This runs the full application on `http://localhost:8787` with:
 
 ### Available Test Credentials
 
-Lunatech includes test credentials for development and CI/CD:
+Lunatech includes test credentials for development and CI/CD. These credentials are available as environment variables and should never be committed to the repository.
 
 ```bash
-# Available as environment variables
-TRACTIVE_TEST_EMAIL=benfoxall@gmail.com
-TRACTIVE_TEST_PASSWORD=yxQuX67Xcwng3qqn4K4P
+# Available as environment variables (values are injected at runtime)
+TRACTIVE_TEST_EMAIL=<provided via environment>
+TRACTIVE_TEST_PASSWORD=<provided via environment>
 ```
+
+**Note**: The actual credential values are securely stored and injected at runtime. Never commit real credentials to the repository.
 
 ### How to Use Test Credentials
 
@@ -193,9 +195,7 @@ TRACTIVE_TEST_PASSWORD=yxQuX67Xcwng3qqn4K4P
 
 3. Click "Get Started" → "Login"
 
-4. Enter the test credentials:
-   - Email: `benfoxall@gmail.com`
-   - Password: `yxQuX67Xcwng3qqn4K4P`
+4. Use the test credentials from your environment variables
 
 5. You'll be redirected to the tracker list and can view real tracking data
 
